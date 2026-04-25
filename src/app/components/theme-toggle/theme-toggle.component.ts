@@ -20,7 +20,7 @@ import { ThemeService } from '../../services/theme.service';
       border: 1px solid var(--border);
       width: 44px;
       height: 44px;
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
       display: grid;
       place-items: center;

@@ -73,7 +73,7 @@ import { CommonModule } from '@angular/common';
     .modal-content {
       background: var(--glass-bg);
       padding: 2rem;
-      border-radius: 24px;
+      border-radius: var(--radius-xl);
       width: 90%;
       max-width: 400px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.2);
@@ -95,7 +95,7 @@ import { CommonModule } from '@angular/common';
     
     input, textarea {
       padding: 0.8rem 1rem;
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
       border: 1.5px solid var(--border);
       background: var(--input-bg);
       color: var(--text);
@@ -119,7 +119,7 @@ import { CommonModule } from '@angular/common';
     .color-option {
       width: 32px;
       height: 32px;
-      border-radius: 50%;
+      border-radius: var(--radius-sm);
       border: 2px solid transparent;
       cursor: pointer;
       transition: all 0.2s;
@@ -154,7 +154,7 @@ import { CommonModule } from '@angular/common';
     button {
       flex: 1;
       padding: 0.8rem;
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;

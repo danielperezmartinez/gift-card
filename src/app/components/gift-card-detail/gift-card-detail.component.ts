@@ -107,7 +107,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .visual-card {
       position: relative;
       aspect-ratio: 1.6/1;
-      border-radius: 24px;
+      border-radius: var(--radius-xl);
       padding: 2rem;
       color: white;
       overflow: hidden;
@@ -126,10 +126,10 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     }
     
     .card-header { display: flex; justify-content: space-between; align-items: center; }
-    .chip { background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+    .chip { background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: var(--radius-xs); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
     
     .logo { display: flex; }
-    .circle { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.3); }
+    .circle { width: 30px; height: 30px; border-radius: var(--radius-round); background: rgba(255,255,255,0.3); }
     .circle:last-child { margin-left: -15px; background: rgba(255,255,255,0.2); }
     
     .card-name { font-size: 1.8rem; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
@@ -141,31 +141,31 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .amount { font-size: 3rem; font-weight: 800; line-height: 1; }
     .amount.animating { transform: scale(1.05); color: #fff; }
     
-    .expense-form { background: var(--section-bg); padding: 1.5rem; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 2.5rem; }
+    .expense-form { background: var(--section-bg); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border); margin-bottom: 2.5rem; }
     .expense-form h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text); }
     
     .input-group { display: flex; gap: 1rem; }
     .input-wrapper { flex: 1; position: relative; }
     .input-symbol { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-weight: 600; }
-    .input-wrapper input { width: 100%; padding: 0.8rem 1rem 0.8rem 2.2rem; border-radius: 12px; border: 1.5px solid var(--border); font-size: 1.1rem; font-weight: 600; background: var(--input-bg); color: var(--text); }
+    .input-wrapper input { width: 100%; padding: 0.8rem 1rem 0.8rem 2.2rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border); font-size: 1.1rem; font-weight: 600; background: var(--input-bg); color: var(--text); }
     
-    .btn-primary { background: var(--primary); color: white; border: none; padding: 0 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: white; border: none; padding: 0 1.5rem; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; transition: all 0.2s; }
     .btn-primary:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     
     .history-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
     .history-header h3 { margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); }
-    .badge { background: var(--border); padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
+    .badge { background: var(--border); padding: 0.2rem 0.6rem; border-radius: var(--radius-lg); font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
     
     .history-list { display: flex; flex-direction: column; gap: 0.75rem; }
     .history-item { 
       display: flex; justify-content: space-between; align-items: center; padding: 1rem; 
-      background: var(--history-item-bg); border-radius: 16px; border: 1px solid var(--border); transition: all 0.2s; 
+      background: var(--history-item-bg); border-radius: var(--radius-md); border: 1px solid var(--border); transition: all 0.2s; 
     }
     .history-item:hover { background: var(--border); }
     
     .item-left { display: flex; align-items: center; gap: 1rem; }
-    .icon-minus { width: 32px; height: 32px; border-radius: 50%; background: #FF3B301A; color: #FF3B30; display: grid; place-items: center; font-weight: 800; }
+    .icon-minus { width: 32px; height: 32px; border-radius: var(--radius-round); background: #FF3B301A; color: #FF3B30; display: grid; place-items: center; font-weight: 800; }
     
     .item-info { display: flex; flex-direction: column; }
     .item-amount { font-weight: 700; color: var(--text); font-size: 1.05rem; }

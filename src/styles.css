@@ -13,6 +13,14 @@
   --fab-bg: #1a1a1a;
   --fab-icon: #ffffff;
   --history-item-bg: #ffffff;
+
+  /* Border Radii */
+  --radius-xl: 24px;
+  --radius-lg: 20px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --radius-xs: 8px;
+  --radius-round: 50%;
 }
 
 .dark-theme {

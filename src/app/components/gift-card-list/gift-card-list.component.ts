@@ -72,7 +72,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     
     .card-item {
       background: var(--card-bg);
-      border-radius: 20px;
+      border-radius: var(--radius-lg);
       padding: 1.5rem;
       display: flex;
       align-items: center;
@@ -115,7 +115,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
       border: none;
       width: 36px;
       height: 36px;
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       display: grid;
       place-items: center;
       color: #FF3B30;
@@ -130,7 +130,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
       text-align: center;
       padding: 4rem 2rem;
       background: var(--section-bg);
-      border-radius: 24px;
+      border-radius: var(--radius-xl);
       border: 2px dashed var(--border);
     }
     
@@ -144,7 +144,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
       right: 2rem;
       width: 64px;
       height: 64px;
-      border-radius: 50%;
+      border-radius: var(--radius-round);
       background: var(--fab-bg);
       border: none;
       box-shadow: 0 12px 24px rgba(0,0,0,0.3);
