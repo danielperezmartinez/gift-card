@@ -16,15 +16,23 @@ export class ThemeService {
       const isDark = this._darkMode();
       if (isDark) {
         document.documentElement.classList.add('dark-theme');
+        document.documentElement.style.colorScheme = 'dark';
       } else {
         document.documentElement.classList.remove('dark-theme');
+        document.documentElement.style.colorScheme = 'light';
       }
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(isDark));
     });
   }
 
   toggleTheme() {
+    document.body.classList.add('theme-transition');
     this._darkMode.update(v => !v);
+    
+    // Remove the transition class after the animation completes
+    setTimeout(() => {
+      document.body.classList.remove('theme-transition');
+    }, 350); // slightly more than the 0.3s CSS transition
   }
 
   private loadFromStorage(): boolean {

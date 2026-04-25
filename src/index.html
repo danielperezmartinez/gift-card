@@ -17,6 +17,9 @@
         
         if (isDark) {
           document.documentElement.classList.add('dark-theme');
+          document.documentElement.style.colorScheme = 'dark';
+        } else {
+          document.documentElement.style.colorScheme = 'light';
         }
       } catch (e) {
         console.error('Theme initialization failed', e);
