@@ -1,4 +1,4 @@
-import { Component, output, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, output, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -24,6 +24,30 @@ import { CommonModule } from '@angular/common';
           <div class="form-group">
             <label for="amount">Importe inicial (€)</label>
             <input id="amount" type="number" formControlName="amount" step="0.01">
+          </div>
+
+          <div class="form-group">
+            <label>Color de la tarjeta (opcional)</label>
+            <div class="color-selector">
+              <button 
+                type="button" 
+                class="color-option auto" 
+                [class.selected]="!form.get('color')?.value"
+                (click)="selectColor(null)"
+                title="Automático"
+              >
+                <span>A</span>
+              </button>
+              @for (color of availableColors; track color) {
+                <button 
+                  type="button" 
+                  class="color-option" 
+                  [class.selected]="form.get('color')?.value === color"
+                  [style.background-color]="color"
+                  (click)="selectColor(color)"
+                ></button>
+              }
+            </div>
           </div>
           
           <div class="actions">
@@ -61,7 +85,7 @@ import { CommonModule } from '@angular/common';
     h2 { margin-top: 0; font-weight: 700; color: var(--text); }
     
     .form-group {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.2rem;
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
@@ -84,11 +108,47 @@ import { CommonModule } from '@angular/common';
       border-color: var(--primary);
       box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
     }
+
+    .color-selector {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      padding: 0.25rem 0;
+    }
+
+    .color-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      padding: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .color-option.auto {
+      background: var(--border);
+      color: var(--text-secondary);
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .color-option.selected {
+      border-color: var(--primary);
+      transform: scale(1.1);
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary);
+    }
+
+    .color-option:hover {
+      transform: scale(1.1);
+    }
     
     .actions {
       display: flex;
       gap: 1rem;
-      margin-top: 2rem;
+      margin-top: 1.5rem;
     }
     
     button {
@@ -131,13 +191,20 @@ export class GiftCardFormComponent {
   private fb = inject(FormBuilder);
   
   close = output<void>();
-  create = output<{ name: string, description: string, amount: number }>();
+  create = output<{ name: string, description: string, amount: number, color?: string }>();
+
+  availableColors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
 
   form = this.fb.group({
     name: ['', Validators.required],
     description: ['', Validators.required],
-    amount: [null as number | null, [Validators.required, Validators.min(0.01)]]
+    amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
+    color: [null as string | null]
   });
+
+  selectColor(color: string | null) {
+    this.form.patchValue({ color });
+  }
 
   onSubmit() {
     if (this.form.valid) {
@@ -145,7 +212,8 @@ export class GiftCardFormComponent {
       this.create.emit({
         name: val.name!,
         description: val.description!,
-        amount: val.amount!
+        amount: val.amount!,
+        color: val.color || undefined
       });
       this.form.reset();
     }

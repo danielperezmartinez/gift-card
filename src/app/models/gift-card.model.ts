@@ -12,4 +12,5 @@ export interface GiftCard {
   balance: number;
   expenses: Expense[];
   createdAt: number;
+  color?: string;
 }

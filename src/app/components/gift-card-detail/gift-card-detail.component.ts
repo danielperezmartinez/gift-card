@@ -194,7 +194,10 @@ export class GiftCardDetailComponent {
 
   // Aesthetic choices
   cardColor = computed(() => {
-    const name = this.card()?.name || '';
+    const card = this.card();
+    if (card?.color) return card.color;
+    
+    const name = card?.name || '';
     const colors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
     let hash = 0;
     for (let i = 0; i < name.length; i++) {

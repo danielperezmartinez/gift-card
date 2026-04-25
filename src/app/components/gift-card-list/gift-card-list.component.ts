@@ -22,6 +22,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
       <div class="list">
         @for (card of giftCardService.cards(); track card.id) {
           <div class="card-item" [routerLink]="['/card', card.id]">
+            <div class="card-accent" [style.background-color]="getCardColor(card)"></div>
             <div class="card-info">
               <h3>{{ card.name }}</h3>
               <p>{{ card.description }}</p>
@@ -89,6 +90,14 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
       box-shadow: 0 12px 24px rgba(0,0,0,0.15);
       border-color: var(--primary);
     }
+
+    .card-accent {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+    }
     
     .card-info h3 { margin: 0 0 0.25rem; font-size: 1.2rem; font-weight: 700; color: var(--text); }
     .card-info p { margin: 0; color: var(--text-secondary); font-size: 0.95rem; }
@@ -154,8 +163,19 @@ export class GiftCardListComponent {
   giftCardService = inject(GiftCardService);
   showForm = signal(false);
 
-  onAddCard(data: { name: string, description: string, amount: number }) {
-    this.giftCardService.addCard(data.name, data.description, data.amount);
+  getCardColor(card: any) {
+    if (card.color) return card.color;
+    const name = card.name || '';
+    const colors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  onAddCard(data: { name: string, description: string, amount: number, color?: string }) {
+    this.giftCardService.addCard(data.name, data.description, data.amount, data.color);
     this.showForm.set(false);
   }
 

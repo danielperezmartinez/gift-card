@@ -28,7 +28,7 @@ export class GiftCardService {
     return computed(() => this._cards().find(c => c.id === id));
   }
 
-  addCard(name: string, description: string, initialAmount: number) {
+  addCard(name: string, description: string, initialAmount: number, color?: string) {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID 
       ? crypto.randomUUID() 
       : Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -40,7 +40,8 @@ export class GiftCardService {
       initialAmount,
       balance: initialAmount,
       expenses: [],
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      color
     };
     
     console.log('Adding new card:', newCard);
