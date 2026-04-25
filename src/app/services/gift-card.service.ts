@@ -52,10 +52,34 @@ export class GiftCardService {
           ...updated[index],
           balance: remoteCard.balance,
           expenses: remoteCard.expenses,
+          color: remoteCard.color,
           isShared: true
         };
         return updated;
       });
+    }
+  }
+
+  async updateCardColor(cardId: string, color: string) {
+    let isShared = false;
+    
+    this._cards.update(cards => {
+      if (!Array.isArray(cards)) return [];
+      return cards.map(card => {
+        if (card.id === cardId) {
+          isShared = !!card.isShared;
+          return { ...card, color };
+        }
+        return card;
+      });
+    });
+
+    if (isShared) {
+      try {
+        await this.supabase.updateCardColor(cardId, color);
+      } catch (e) {
+        console.error('Failed to sync color to Supabase', e);
+      }
     }
   }
 

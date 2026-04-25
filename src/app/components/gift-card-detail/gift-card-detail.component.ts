@@ -58,6 +58,21 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
           </div>
         </div>
 
+        <section class="color-picker">
+          <h3>Personalizar Color</h3>
+          <div class="colors-list">
+            @for (color of availableColors; track color) {
+              <button 
+                class="color-btn" 
+                [style.background]="color" 
+                [class.selected]="color === cardColor()"
+                (click)="onColorSelect(color)"
+                aria-label="Seleccionar color">
+              </button>
+            }
+          </div>
+        </section>
+
         <section class="expense-form">
           <h3>Añadir Gasto</h3>
           <div class="input-group">
@@ -153,6 +168,13 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .amount { font-size: 3rem; font-weight: 800; line-height: 1; }
     .amount.animating { transform: scale(1.05); color: #fff; }
     
+    .color-picker { background: var(--section-bg); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border); margin-bottom: 2.5rem; }
+    .color-picker h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .colors-list { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .color-btn { width: 36px; height: 36px; border-radius: var(--radius-round); border: 2px solid transparent; cursor: pointer; transition: transform 0.2s, border-color 0.2s; padding: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .color-btn:hover { transform: scale(1.1); }
+    .color-btn.selected { border-color: var(--text); transform: scale(1.15); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+    
     .expense-form { background: var(--section-bg); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border); margin-bottom: 2.5rem; }
     .expense-form h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text); }
     
@@ -212,12 +234,14 @@ export class GiftCardDetailComponent {
   private animationInterval: any;
 
   // Aesthetic choices
+  availableColors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
+
   cardColor = computed(() => {
     const card = this.card();
     if (card?.color) return card.color;
     
     const name = card?.name || '';
-    const colors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
+    const colors = this.availableColors;
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -243,6 +267,12 @@ export class GiftCardDetailComponent {
       const targetBalance = this.card()?.balance ?? 0;
       this.animateTo(targetBalance);
     });
+  }
+
+  onColorSelect(color: string) {
+    if (this.cardId()) {
+      this.giftCardService.updateCardColor(this.cardId()!, color);
+    }
   }
 
   private animateTo(target: number) {

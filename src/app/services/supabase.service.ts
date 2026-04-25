@@ -120,6 +120,15 @@ export class SupabaseService {
     if (cardError) throw cardError;
   }
 
+  async updateCardColor(cardId: string, color: string): Promise<void> {
+    const { error: cardError } = await this.supabase
+      .from('shared_cards')
+      .update({ color })
+      .eq('id', cardId);
+
+    if (cardError) throw cardError;
+  }
+
   subscribeToCardUpdates(cardId: string, callback: () => void) {
     return this.supabase
       .channel(`card_${cardId}`)

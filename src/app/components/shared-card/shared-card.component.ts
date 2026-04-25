@@ -51,19 +51,6 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
           </div>
         </div>
 
-        <section class="expense-form">
-          <h3>Añadir Gasto</h3>
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="input-symbol">€</span>
-              <input type="number" [(ngModel)]="expenseAmount" placeholder="0.00" step="0.01" min="0">
-            </div>
-            <button class="btn-primary" (click)="onAddExpense()" [disabled]="!expenseAmount || expenseAmount <= 0 || isAddingExpense()">
-              {{ isAddingExpense() ? 'Guardando...' : 'Descontar' }}
-            </button>
-          </div>
-        </section>
-
         <section class="history">
           <div class="history-header">
             <h3>Historial de Movimientos</h3>
@@ -138,18 +125,6 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .amount { font-size: 3rem; font-weight: 800; line-height: 1; }
     .amount.animating { transform: scale(1.05); color: #fff; }
     
-    .expense-form { background: var(--section-bg); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border); margin-bottom: 2.5rem; }
-    .expense-form h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text); }
-    
-    .input-group { display: flex; gap: 1rem; }
-    .input-wrapper { flex: 1; position: relative; }
-    .input-symbol { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-weight: 600; }
-    .input-wrapper input { width: 100%; padding: 0.8rem 1rem 0.8rem 2.2rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border); font-size: 1.1rem; font-weight: 600; background: var(--input-bg); color: var(--text); }
-    
-    .btn-primary { background: var(--primary); color: white; border: none; padding: 0 1.5rem; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; transition: all 0.2s; }
-    .btn-primary:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    
     .history-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
     .history-header h3 { margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); }
     .badge { background: var(--border); padding: 0.2rem 0.6rem; border-radius: var(--radius-lg); font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
@@ -182,9 +157,6 @@ export class SharedCardComponent implements OnInit, OnDestroy {
   cardId = signal<string | null>(null);
   card = signal<GiftCard | null>(null);
   isLoading = signal(true);
-  isAddingExpense = signal(false);
-
-  expenseAmount: number | null = null;
   
   // Animation state
   displayBalance = signal(0);
@@ -272,38 +244,5 @@ export class SharedCardComponent implements OnInit, OnDestroy {
         this.isAnimating.set(false);
       }
     }, 16);
-  }
-
-  async onAddExpense() {
-    const amount = this.expenseAmount;
-    const id = this.cardId();
-    const currentCard = this.card();
-    
-    if (amount && amount > 0 && id && currentCard) {
-      this.isAddingExpense.set(true);
-      
-      const expenseId = typeof crypto !== 'undefined' && crypto.randomUUID 
-        ? crypto.randomUUID() 
-        : Math.random().toString(36).substring(2) + Date.now().toString(36);
-        
-      const expense: Expense = {
-        id: expenseId,
-        amount,
-        date: Date.now()
-      };
-
-      const newBalance = currentCard.balance - amount;
-
-      try {
-        await this.supabaseService.addExpense(id, expense, newBalance);
-        this.expenseAmount = null;
-        // The realtime subscription will trigger a reload and update the view automatically
-      } catch (e) {
-        console.error('Error adding expense:', e);
-        alert('Hubo un error al guardar el gasto.');
-      } finally {
-        this.isAddingExpense.set(false);
-      }
-    }
   }
 }
