@@ -10,6 +10,10 @@ export const routes: Routes = [
     loadComponent: () => import('./components/gift-card-detail/gift-card-detail.component').then(m => m.GiftCardDetailComponent)
   },
   {
+    path: 'shared/:id',
+    loadComponent: () => import('./components/shared-card/shared-card.component').then(m => m.SharedCardComponent)
+  },
+  {
     path: '**',
     redirectTo: ''
   }

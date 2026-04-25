@@ -53,3 +53,11 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Design services around a single responsibility
 - Use the `providedIn: 'root'` option for singleton services
 - Use the `inject()` function instead of constructor injection
+
+## Instrucciones de desarrollo
+
+- Uso estricto de variables (CSS/Estilos): Antes de aplicar valores estáticos (hardcoded) para colores, espaciados, bordes o tipografías, revisa el archivo de estilos globales. Debes utilizar obligatoriamente las variables CSS/tokens de diseño existentes para mantener la consistencia visual. Solo añade valores nuevos si es absolutamente indispensable y no hay una variable que cubra el caso de uso.
+- Priorizar la reutilización: Antes de crear un nuevo componente visual, hook o función utilitaria desde cero, analiza el código existente para verificar si ya hay algo similar que se pueda reutilizar o extender fácilmente.
+- Comentarios con propósito: No comentes el qué hace el código si es evidente leyéndolo. Usa los comentarios exclusivamente para explicar el por qué detrás de decisiones de diseño, lógicas complejas o soluciones a casos atípicos (edge cases).
+- Manejo de errores proactivo: Al escribir lógica de negocio, llamadas a APIs o funciones complejas, asume que las cosas pueden fallar. Implementa siempre un manejo de errores robusto (ej. bloques try/catch, validaciones tempranas) y evita suprimir errores silenciosamente.
+- Simplicidad y modularidad: Prioriza funciones y componentes pequeños, de responsabilidad única (Single Responsibility Principle). Si un archivo o función empieza a crecer demasiado, proponme una forma de refactorizarlo y dividirlo.

@@ -13,4 +13,5 @@ export interface GiftCard {
   expenses: Expense[];
   createdAt: number;
   color?: string;
+  isShared?: boolean;
 }

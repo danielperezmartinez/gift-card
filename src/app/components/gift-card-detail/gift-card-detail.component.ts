@@ -21,6 +21,15 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
           </div>
           <div class="nav-right">
             <app-theme-toggle />
+            @if (!c.isShared) {
+              <button class="share-link" (click)="onShare()" [disabled]="isSharing()">
+                {{ isSharing() ? 'Compartiendo...' : 'Compartir' }}
+              </button>
+            } @else {
+              <button class="share-link" (click)="copyShareLink()">
+                {{ copied() ? 'Copiado!' : 'Copiar Link' }}
+              </button>
+            }
             <button class="delete-link" (click)="onDeleteCard()">Eliminar</button>
           </div>
         </nav>
@@ -102,6 +111,9 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .nav-right { display: flex; align-items: center; gap: 1rem; }
     .back-link { display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: color 0.2s; }
     .back-link:hover { color: var(--text); }
+    .share-link { background: none; border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); color: var(--text); font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+    .share-link:hover { background: var(--bg-hover); }
+    .share-link:disabled { opacity: 0.5; cursor: not-allowed; }
     .delete-link { background: none; border: none; color: #FF3B30; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
     
     .visual-card {
@@ -213,6 +225,10 @@ export class GiftCardDetailComponent {
     return colors[Math.abs(hash) % colors.length];
   });
 
+  // Share state
+  isSharing = signal(false);
+  copied = signal(false);
+
   constructor() {
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
@@ -270,5 +286,33 @@ export class GiftCardDetailComponent {
       this.giftCardService.deleteCard(this.cardId()!);
       this.router.navigate(['/']);
     }
+  }
+
+  async onShare() {
+    if (this.isSharing() || !this.cardId()) return;
+    this.isSharing.set(true);
+    try {
+      await this.giftCardService.shareCard(this.cardId()!);
+      this.copyShareLink();
+    } catch (e) {
+      console.error('Error compartiendo tarjeta:', e);
+      alert('Hubo un error al compartir la tarjeta. Inténtalo de nuevo.');
+    } finally {
+      this.isSharing.set(false);
+    }
+  }
+
+  copyShareLink() {
+    if (!this.cardId()) return;
+    
+    const url = window.location.origin + '/shared/' + this.cardId();
+    navigator.clipboard.writeText(url).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    }).catch(err => {
+      console.error('No se pudo copiar el enlace: ', err);
+      // Fallback
+      prompt('Copia este enlace para compartir:', url);
+    });
   }
 }

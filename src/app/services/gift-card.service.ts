@@ -1,11 +1,13 @@
-import { Injectable, signal, effect, computed } from '@angular/core';
+import { Injectable, signal, effect, computed, inject } from '@angular/core';
 import { GiftCard, Expense } from '../models/gift-card.model';
+import { SupabaseService } from './supabase.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GiftCardService {
   private readonly STORAGE_KEY = 'gift_cards_data';
+  private supabase = inject(SupabaseService);
   
   // State
   private readonly _cards = signal<GiftCard[]>(this.loadFromStorage());
@@ -21,6 +23,62 @@ export class GiftCardService {
       } catch (err) {
         console.error('Error saving to localStorage', err);
       }
+    });
+
+    this.setupSubscriptions();
+  }
+
+  private setupSubscriptions() {
+    const cards = this._cards();
+    for (const card of cards) {
+      if (card.isShared) {
+        this.syncSharedCard(card.id);
+        this.supabase.subscribeToCardUpdates(card.id, () => {
+          this.syncSharedCard(card.id);
+        });
+      }
+    }
+  }
+
+  private async syncSharedCard(id: string) {
+    const remoteCard = await this.supabase.getSharedCard(id);
+    if (remoteCard) {
+      this._cards.update(cards => {
+        const index = cards.findIndex(c => c.id === id);
+        if (index === -1) return cards;
+        
+        const updated = [...cards];
+        updated[index] = {
+          ...updated[index],
+          balance: remoteCard.balance,
+          expenses: remoteCard.expenses,
+          isShared: true
+        };
+        return updated;
+      });
+    }
+  }
+
+  async shareCard(id: string) {
+    const card = this._cards().find(c => c.id === id);
+    if (!card) return;
+
+    const cardToShare = { ...card, isShared: true };
+
+    // Upload to Supabase first
+    await this.supabase.shareCard(cardToShare);
+
+    // Mark as shared locally
+    this._cards.update(cards => {
+      const updated = [...cards];
+      const index = updated.findIndex(c => c.id === id);
+      updated[index] = cardToShare;
+      return updated;
+    });
+
+    // Subscribe to future updates
+    this.supabase.subscribeToCardUpdates(id, () => {
+      this.syncSharedCard(id);
     });
   }
 
@@ -57,32 +115,49 @@ export class GiftCardService {
     this._cards.update(cards => Array.isArray(cards) ? cards.filter(c => c.id !== id) : []);
   }
 
-  addExpense(cardId: string, amount: number) {
+  async addExpense(cardId: string, amount: number) {
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      
+    const expense: Expense = {
+      id,
+      amount,
+      date: Date.now()
+    };
+
+    let isShared = false;
+    let newBalance = 0;
+
     this._cards.update(cards => {
       if (!Array.isArray(cards)) return [];
       return cards.map(card => {
         if (card.id === cardId) {
-          const id = typeof crypto !== 'undefined' && crypto.randomUUID 
-            ? crypto.randomUUID() 
-            : Math.random().toString(36).substring(2) + Date.now().toString(36);
-            
-          const expense: Expense = {
-            id,
-            amount,
-            date: Date.now()
-          };
+          isShared = !!card.isShared;
+          newBalance = card.balance - amount;
           return {
             ...card,
-            balance: card.balance - amount,
+            balance: newBalance,
             expenses: [expense, ...card.expenses]
           };
         }
         return card;
       });
     });
+
+    if (isShared) {
+      try {
+        await this.supabase.addExpense(cardId, expense, newBalance);
+      } catch (e) {
+        console.error('Failed to sync expense to Supabase', e);
+      }
+    }
   }
 
-  deleteExpense(cardId: string, expenseId: string) {
+  async deleteExpense(cardId: string, expenseId: string) {
+    let isShared = false;
+    let newBalance = 0;
+    
     this._cards.update(cards => {
       if (!Array.isArray(cards)) return [];
       return cards.map(card => {
@@ -90,15 +165,26 @@ export class GiftCardService {
           const expenseToDelete = card.expenses.find(e => e.id === expenseId);
           if (!expenseToDelete) return card;
           
+          isShared = !!card.isShared;
+          newBalance = card.balance + expenseToDelete.amount;
+          
           return {
             ...card,
-            balance: card.balance + expenseToDelete.amount,
+            balance: newBalance,
             expenses: card.expenses.filter(e => e.id !== expenseId)
           };
         }
         return card;
       });
     });
+
+    if (isShared) {
+      try {
+        await this.supabase.removeExpense(cardId, expenseId, newBalance);
+      } catch (e) {
+        console.error('Failed to remove expense from Supabase', e);
+      }
+    }
   }
 
   private loadFromStorage(): GiftCard[] {
