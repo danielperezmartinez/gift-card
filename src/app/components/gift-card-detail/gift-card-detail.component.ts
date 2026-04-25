@@ -3,20 +3,26 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { GiftCardService } from '../../services/gift-card.service';
 import { FormsModule } from '@angular/forms';
+import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-gift-card-detail',
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, ThemeToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (card(); as c) {
       <div class="container">
         <nav>
-          <a routerLink="/" class="back-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            Volver
-          </a>
-          <button class="delete-link" (click)="onDeleteCard()">Eliminar tarjeta</button>
+          <div class="nav-left">
+            <a routerLink="/" class="back-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              Volver
+            </a>
+          </div>
+          <div class="nav-right">
+            <app-theme-toggle />
+            <button class="delete-link" (click)="onDeleteCard()">Eliminar</button>
+          </div>
         </nav>
 
         <div class="visual-card" [style.background]="cardColor()">
@@ -93,6 +99,7 @@ import { FormsModule } from '@angular/forms';
     .container { max-width: 600px; margin: 0 auto; padding: 2rem 1.5rem; }
     
     nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
     .back-link { display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: color 0.2s; }
     .back-link:hover { color: var(--text); }
     .delete-link { background: none; border: none; color: #FF3B30; font-weight: 600; cursor: pointer; font-size: 0.95rem; }

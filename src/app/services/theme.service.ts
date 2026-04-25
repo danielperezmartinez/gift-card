@@ -28,9 +28,13 @@ export class ThemeService {
   }
 
   private loadFromStorage(): boolean {
-    const stored = localStorage.getItem(this.STORAGE_KEY);
-    if (stored !== null) {
-      return JSON.parse(stored);
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored !== null) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Error loading theme from storage', e);
     }
     // Fallback to system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
