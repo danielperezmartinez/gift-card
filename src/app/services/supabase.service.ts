@@ -2,46 +2,51 @@ import { Injectable, signal } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 import { GiftCard, Expense } from '../models/gift-card.model';
+import { Database } from '../models/database';
+
+const GIFT_CARD_SCHEMA = 'gift_card' as const;
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SupabaseService {
-  private supabase: SupabaseClient;
+  private supabase: SupabaseClient<Database, typeof GIFT_CARD_SCHEMA>;
 
   constructor() {
-    this.supabase = createClient(environment.supabase.url, environment.supabase.publicKey);
+    this.supabase = createClient<Database, typeof GIFT_CARD_SCHEMA>(
+      environment.supabase.url,
+      environment.supabase.publicKey,
+      { db: { schema: GIFT_CARD_SCHEMA } },
+    );
   }
 
   async shareCard(card: GiftCard): Promise<void> {
     // Upsert the card first
-    const { error: cardError } = await this.supabase
-      .from('shared_cards')
-      .upsert({
-        id: card.id,
-        name: card.name,
-        description: card.description,
-        initial_amount: card.initialAmount,
-        balance: card.balance,
-        created_at: card.createdAt,
-        color: card.color
-      });
+    const { error: cardError } = await this.supabase.from('shared_cards').upsert({
+      id: card.id,
+      name: card.name,
+      description: card.description,
+      initial_amount: card.initialAmount,
+      balance: card.balance,
+      created_at: card.createdAt,
+      color: card.color,
+    });
 
     if (cardError) throw cardError;
 
     // Then insert all expenses if any
     if (card.expenses && card.expenses.length > 0) {
-      const expensesToInsert = card.expenses.map(e => ({
+      const expensesToInsert = card.expenses.map((e) => ({
         id: e.id,
         card_id: card.id,
         amount: e.amount,
-        date: e.date
+        date: e.date,
       }));
-      
+
       const { error: expensesError } = await this.supabase
         .from('shared_expenses')
         .upsert(expensesToInsert);
-        
+
       if (expensesError) throw expensesError;
     }
   }
@@ -70,26 +75,24 @@ export class SupabaseService {
       initialAmount: cardData.initial_amount,
       balance: cardData.balance,
       createdAt: cardData.created_at,
-      color: cardData.color,
+      color: cardData.color ?? undefined,
       isShared: true,
-      expenses: (expensesData || []).map(e => ({
+      expenses: (expensesData || []).map((e) => ({
         id: e.id,
         amount: e.amount,
-        date: e.date
-      }))
+        date: e.date,
+      })),
     };
   }
 
   async addExpense(cardId: string, expense: Expense, newBalance: number): Promise<void> {
     // Add the expense
-    const { error: expenseError } = await this.supabase
-      .from('shared_expenses')
-      .insert({
-        id: expense.id,
-        card_id: cardId,
-        amount: expense.amount,
-        date: expense.date
-      });
+    const { error: expenseError } = await this.supabase.from('shared_expenses').insert({
+      id: expense.id,
+      card_id: cardId,
+      amount: expense.amount,
+      date: expense.date,
+    });
 
     if (expenseError) throw expenseError;
 
@@ -134,18 +137,23 @@ export class SupabaseService {
       .channel(`card_${cardId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'shared_cards', filter: `id=eq.${cardId}` },
-        () => callback()
+        { event: '*', schema: GIFT_CARD_SCHEMA, table: 'shared_cards', filter: `id=eq.${cardId}` },
+        () => callback(),
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'shared_expenses', filter: `card_id=eq.${cardId}` },
-        () => callback()
+        {
+          event: '*',
+          schema: GIFT_CARD_SCHEMA,
+          table: 'shared_expenses',
+          filter: `card_id=eq.${cardId}`,
+        },
+        () => callback(),
       )
       .subscribe();
   }
 
-  unsubscribe(channel: ReturnType<SupabaseClient['channel']>) {
+  unsubscribe(channel: ReturnType<SupabaseClient<Database, typeof GIFT_CARD_SCHEMA>['channel']>) {
     this.supabase.removeChannel(channel);
   }
 }

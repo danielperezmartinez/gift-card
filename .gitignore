@@ -53,3 +53,6 @@ src/environments/environment.*.local.ts
 # System files
 .DS_Store
 Thumbs.db
+
+.vercel
+.env*
