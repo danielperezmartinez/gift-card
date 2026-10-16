@@ -26,8 +26,8 @@
           } else {
             document.documentElement.style.colorScheme = 'light';
           }
-        } catch (e) {
-          console.error('Theme initialization failed', e);
+        } catch {
+          // Unreadable stored theme: keep the light default.
         }
       })();
     </script>

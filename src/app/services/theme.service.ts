@@ -1,4 +1,5 @@
 import { Injectable, signal, effect } from '@angular/core';
+import { logError } from './logger';
 
 @Injectable({
   providedIn: 'root'
@@ -42,7 +43,7 @@ export class ThemeService {
         return JSON.parse(stored);
       }
     } catch (e) {
-      console.error('Error loading theme from storage', e);
+      logError('Error loading theme from storage', e);
     }
     // Fallback to system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches;

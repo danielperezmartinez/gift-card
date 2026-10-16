@@ -4,6 +4,9 @@ import { RouterLink } from '@angular/router';
 import { GiftCardService } from '../../services/gift-card.service';
 import { GiftCardFormComponent } from '../gift-card-form/gift-card-form.component';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
+import { GiftCard } from '../../models/gift-card.model';
+import { resolveCardColor } from '../../models/card-colors';
+import { logError } from '../../services/logger';
 
 @Component({
   selector: 'app-gift-card-list',
@@ -21,31 +24,33 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 
       <div class="list">
         @for (card of giftCardService.cards(); track card.id) {
-          <div class="card-item" [routerLink]="['/card', card.id]">
-            <div class="card-accent" [style.background-color]="getCardColor(card)"></div>
-            <div class="card-info">
-              <h3>{{ card.name }}</h3>
-              <p>{{ card.description }}</p>
-            </div>
-            <div class="card-balance">
-              <span class="label">Saldo</span>
-              <span class="value">{{ card.balance | currency:'EUR' }}</span>
-            </div>
-            <button class="delete-btn" (click)="$event.stopPropagation(); onDelete(card.id)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          <div class="card-item">
+            <a class="card-link" [routerLink]="['/card', card.id]">
+              <div class="card-accent" [style.background-color]="cardColor(card)"></div>
+              <div class="card-info">
+                <h2>{{ card.name }}</h2>
+                <p>{{ card.description }}</p>
+              </div>
+              <div class="card-balance">
+                <span class="label">Saldo</span>
+                <span class="value">{{ card.balance | currency:'EUR' }}</span>
+              </div>
+            </a>
+            <button type="button" class="delete-btn" [attr.aria-label]="'Eliminar ' + card.name" (click)="onDelete(card)">
+              <svg aria-hidden="true" focusable="false"xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
             </button>
           </div>
         } @empty {
           <div class="empty-state">
-            <div class="icon">🎁</div>
+            <div class="icon" aria-hidden="true">🎁</div>
             <p>Aún no tienes tarjetas de regalo.</p>
             <p class="sub">Pulsa el botón "+" para añadir una.</p>
           </div>
         }
       </div>
 
-      <button class="fab" (click)="showForm.set(true)">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--fab-icon)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <button type="button" class="fab" aria-label="Añadir tarjeta" (click)="showForm.set(true)">
+        <svg aria-hidden="true" focusable="false"xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--fab-icon)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
 
       @if (showForm()) {
@@ -73,18 +78,25 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .card-item {
       background: var(--card-bg);
       border-radius: var(--radius-lg);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-link {
       padding: 1.5rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      border: 1px solid var(--border);
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
+      color: inherit;
+      text-decoration: none;
+      border-radius: inherit;
     }
-    
+
+    .card-link:focus-visible { outline-offset: -3px; }
+
     .card-item:hover {
       transform: translateY(-4px) scale(1.01);
       box-shadow: 0 12px 24px rgba(0,0,0,0.15);
@@ -99,7 +111,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
       width: 6px;
     }
     
-    .card-info h3 { margin: 0 0 0.25rem; font-size: 1.2rem; font-weight: 700; color: var(--text); }
+    .card-info h2 { margin: 0 0 0.25rem; font-size: 1.2rem; font-weight: 700; color: var(--text); }
     .card-info p { margin: 0; color: var(--text-secondary); font-size: 0.95rem; }
     
     .card-balance { text-align: right; margin-right: 2.5rem; }
@@ -111,20 +123,27 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
       right: 1rem;
       top: 50%;
       transform: translateY(-50%);
-      background: #FF3B301A;
+      background: var(--danger-soft);
       border: none;
       width: 36px;
       height: 36px;
       border-radius: var(--radius-sm);
       display: grid;
       place-items: center;
-      color: #FF3B30;
+      color: var(--danger);
+      cursor: pointer;
       opacity: 0;
       transition: all 0.2s;
     }
-    
-    .card-item:hover .delete-btn { opacity: 1; }
-    .delete-btn:hover { background: #FF3B30; color: white; }
+
+    .card-item:hover .delete-btn,
+    .delete-btn:focus-visible { opacity: 1; }
+    .delete-btn:hover { background: var(--danger); color: var(--on-primary); }
+
+    /* Touch screens have no hover: keep the delete action reachable. */
+    @media (hover: none) {
+      .delete-btn { opacity: 1; }
+    }
     
     .empty-state {
       text-align: center;
@@ -163,15 +182,8 @@ export class GiftCardListComponent {
   giftCardService = inject(GiftCardService);
   showForm = signal(false);
 
-  getCardColor(card: any) {
-    if (card.color) return card.color;
-    const name = card.name || '';
-    const colors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
+  cardColor(card: GiftCard) {
+    return resolveCardColor(card);
   }
 
   onAddCard(data: { name: string, description: string, amount: number, color?: string }) {
@@ -179,9 +191,17 @@ export class GiftCardListComponent {
     this.showForm.set(false);
   }
 
-  onDelete(id: string) {
-    if (confirm('¿Estás seguro de que quieres eliminar esta tarjeta?')) {
-      this.giftCardService.deleteCard(id);
+  async onDelete(card: GiftCard) {
+    const message = card.isShared
+      ? '¿Eliminar esta tarjeta? También dejará de estar compartida y su enlace dejará de funcionar.'
+      : '¿Estás seguro de que quieres eliminar esta tarjeta?';
+    if (!confirm(message)) return;
+
+    try {
+      await this.giftCardService.deleteCard(card.id);
+    } catch (e) {
+      logError('Failed to delete card', e);
+      alert('No se pudo eliminar la copia compartida. Inténtalo de nuevo.');
     }
   }
 }

@@ -1,6 +1,10 @@
 :root {
   color-scheme: light;
-  --primary: #A29BFE;
+  --primary: #6C5CE7;
+  --on-primary: #ffffff;
+  --danger: #D70015;
+  --danger-soft: #D700151A;
+  --focus-ring: #6C5CE7;
   --bg: #ffffff;
   --text: #1a1a1a;
   --text-secondary: #666666;
@@ -37,6 +41,11 @@
   --fab-bg: #ffffff;
   --fab-icon: #000000;
   --history-item-bg: #1c1c1e;
+  --primary: #A29BFE;
+  --on-primary: #1a1a1a;
+  --danger: #FF453A;
+  --danger-soft: #FF453A26;
+  --focus-ring: #A29BFE;
 }
 
 * {
@@ -73,4 +82,21 @@ input[type="number"]::-webkit-outer-spin-button {
 .container {
   max-width: 600px;
   margin: 0 auto;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

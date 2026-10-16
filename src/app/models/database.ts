@@ -103,6 +103,10 @@ export type Database = {
         };
         Returns: number;
       };
+      delete_shared_card: {
+        Args: { p_card_id: string; p_edit_token: string };
+        Returns: undefined;
+      };
       get_shared_card: {
         Args: { p_id: string };
         Returns: Json;

@@ -27,10 +27,10 @@ const SHARED_CARD = {
 };
 
 const ROUTES = [
-  { name: 'listado vacío', path: '/', cards: [] },
-  { name: 'listado con tarjetas', path: '/', cards: [LOCAL_CARD] },
-  { name: 'detalle', path: `/card/${CARD_ID}`, cards: [LOCAL_CARD] },
-  { name: 'vista compartida', path: `/shared/${CARD_ID}`, cards: [] },
+  { name: 'listado vacío', path: '/', cards: [], heading: 'Mis Tarjetas' },
+  { name: 'listado con tarjetas', path: '/', cards: [LOCAL_CARD], heading: 'Mis Tarjetas' },
+  { name: 'detalle', path: `/card/${CARD_ID}`, cards: [LOCAL_CARD], heading: LOCAL_CARD.name },
+  { name: 'vista compartida', path: `/shared/${CARD_ID}`, cards: [], heading: SHARED_CARD.name },
 ];
 
 async function prepare(page: Page, cards: unknown[], dark: boolean) {
@@ -47,7 +47,26 @@ async function prepare(page: Page, cards: unknown[], dark: boolean) {
   await page.route('**/realtime/v1/**', (route) => route.abort());
 }
 
+async function analyze(page: Page) {
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  return violations;
+}
+
 for (const dark of [false, true]) {
+  test(`WCAG AA sin infracciones: formulario de nueva tarjeta (${dark ? 'oscuro' : 'claro'})`, async ({
+    page,
+  }) => {
+    await prepare(page, [], dark);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Añadir tarjeta' }).click();
+    await expect(page.getByRole('dialog', { name: 'Nueva tarjeta' })).toBeVisible();
+    // Wait for the entry animation so colors are measured at full opacity.
+    await page.waitForTimeout(500);
+    expect(await analyze(page)).toEqual([]);
+  });
+
   for (const route of ROUTES) {
     test(`WCAG AA sin infracciones: ${route.name} (${dark ? 'oscuro' : 'claro'})`, async ({
       page,
@@ -55,10 +74,8 @@ for (const dark of [false, true]) {
       await prepare(page, route.cards, dark);
       await page.goto(route.path);
       await page.waitForLoadState('networkidle');
-      const { violations } = await new AxeBuilder({ page })
-        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-        .analyze();
-      expect(violations).toEqual([]);
+      await expect(page.getByRole('heading', { level: 1, name: route.heading })).toBeVisible();
+      expect(await analyze(page)).toEqual([]);
     });
   }
 }

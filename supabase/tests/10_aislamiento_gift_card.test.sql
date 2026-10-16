@@ -4,7 +4,7 @@
 -- token. Gift Card no usa Auth: "otro usuario" es cualquier cliente sin el token.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(19);
+select plan(22);
 
 -- Acceso directo a las tablas: denegado a anon y authenticated.
 set local role anon;
@@ -79,11 +79,25 @@ select is(
   gift_card.get_shared_card('11111111-1111-1111-1111-111111111111')->>'balance',
   '90', 'El saldo de A sigue intacto');
 
+select throws_ok(
+  $$ select gift_card.delete_shared_card('11111111-1111-1111-1111-111111111111',
+       repeat('b', 40)) $$,
+  '42501', null, 'Sin el token de A no se deja de compartir');
+
 -- A sí puede editar su tarjeta (las RPC no son simplemente "nadie").
 select is(
   gift_card.add_shared_expense('11111111-1111-1111-1111-111111111111',
     repeat('a', 40), gen_random_uuid(), 15, 3),
   75::numeric, 'Con su token A añade un gasto');
+
+-- A deja de compartirla: el enlace deja de devolver datos.
+select lives_ok(
+  $$ select gift_card.delete_shared_card('11111111-1111-1111-1111-111111111111',
+       repeat('a', 40)) $$,
+  'Con su token A deja de compartir la tarjeta');
+select ok(
+  gift_card.get_shared_card('11111111-1111-1111-1111-111111111111') is null,
+  'Tras dejar de compartir, el enlace no devuelve nada');
 
 select * from finish();
 rollback;

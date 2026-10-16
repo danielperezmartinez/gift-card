@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { GiftCard, Expense } from '../../models/gift-card.model';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
+import { resolveCardColor } from '../../models/card-colors';
+import { logError } from '../../services/logger';
 
 @Component({
   selector: 'app-shared-card',
@@ -31,13 +33,13 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
           <div class="card-glass"></div>
           <div class="card-header">
             <span class="chip">Gift Card Compartida</span>
-            <div class="logo">
+            <div class="logo" aria-hidden="true">
               <div class="circle"></div>
               <div class="circle"></div>
             </div>
           </div>
           <div class="card-body">
-            <h2 class="card-name">{{ c.name }}</h2>
+            <h1 class="card-name">{{ c.name }}</h1>
             <p class="card-desc">{{ c.description }}</p>
           </div>
           <div class="card-footer">
@@ -53,15 +55,15 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 
         <section class="history">
           <div class="history-header">
-            <h3>Historial de Movimientos</h3>
-            <span class="badge">{{ c.expenses.length }}</span>
+            <h2>Historial de movimientos</h2>
+            <span class="badge">{{ c.expenses.length }}<span class="visually-hidden"> movimientos</span></span>
           </div>
           
           <div class="history-list">
             @for (expense of c.expenses; track expense.id) {
               <div class="history-item">
                 <div class="item-left">
-                  <div class="icon-minus">−</div>
+                  <div class="icon-minus" aria-hidden="true">−</div>
                   <div class="item-info">
                     <span class="item-amount">{{ expense.amount | currency:'EUR' }}</span>
                     <span class="item-date">{{ expense.date | date:'short' }}</span>
@@ -86,7 +88,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     
     nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
     .nav-right { display: flex; align-items: center; gap: 1rem; }
-    .guest-badge { background: var(--primary); color: white; padding: 0.3rem 0.8rem; border-radius: var(--radius-xl); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+    .guest-badge { background: var(--primary); color: var(--on-primary); padding: 0.3rem 0.8rem; border-radius: var(--radius-xl); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
     
     .visual-card {
       position: relative;
@@ -105,28 +107,28 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .card-glass {
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%);
       pointer-events: none;
     }
     
     .card-header { display: flex; justify-content: space-between; align-items: center; }
-    .chip { background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: var(--radius-xs); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+    .chip { background: rgba(0,0,0,0.2); padding: 0.4rem 0.8rem; border-radius: var(--radius-xs); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
     
     .logo { display: flex; }
     .circle { width: 30px; height: 30px; border-radius: var(--radius-round); background: rgba(255,255,255,0.3); }
     .circle:last-child { margin-left: -15px; background: rgba(255,255,255,0.2); }
     
     .card-name { font-size: 1.8rem; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
-    .card-desc { font-size: 1rem; opacity: 0.8; margin: 0.25rem 0 0; }
+    .card-desc { font-size: 1rem; margin: 0.25rem 0 0; }
     
-    .balance-display .label { font-size: 0.8rem; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.05em; }
+    .balance-display .label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
     .amount-container { display: flex; align-items: baseline; gap: 0.4rem; margin-top: 0.2rem; }
     .symbol { font-size: 1.5rem; font-weight: 700; opacity: 0.8; }
     .amount { font-size: 3rem; font-weight: 800; line-height: 1; }
     .amount.animating { transform: scale(1.05); color: #fff; }
     
     .history-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
-    .history-header h3 { margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); }
+    .history-header h2 { margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); }
     .badge { background: var(--border); padding: 0.2rem 0.6rem; border-radius: var(--radius-lg); font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
     
     .history-list { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -137,7 +139,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .history-item:hover { background: var(--border); }
     
     .item-left { display: flex; align-items: center; gap: 1rem; }
-    .icon-minus { width: 32px; height: 32px; border-radius: var(--radius-round); background: #FF3B301A; color: #FF3B30; display: grid; place-items: center; font-weight: 800; }
+    .icon-minus { width: 32px; height: 32px; border-radius: var(--radius-round); background: var(--danger-soft); color: var(--danger); display: grid; place-items: center; font-weight: 800; }
     
     .item-info { display: flex; flex-direction: column; }
     .item-amount { font-weight: 700; color: var(--text); font-size: 1.05rem; }
@@ -164,19 +166,7 @@ export class SharedCardComponent implements OnInit, OnDestroy {
   private animationInterval: any;
   private channel: any;
 
-  // Aesthetic choices
-  cardColor = computed(() => {
-    const c = this.card();
-    if (c?.color) return c.color;
-    
-    const name = c?.name || '';
-    const colors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  });
+  cardColor = computed(() => resolveCardColor(this.card()));
 
   constructor() {
     effect(() => {
@@ -217,7 +207,7 @@ export class SharedCardComponent implements OnInit, OnDestroy {
       }
       this.card.set(fetchedCard);
     } catch (e) {
-      console.error('Error fetching shared card:', e);
+      logError('Failed to fetch shared card', e);
     } finally {
       this.isLoading.set(false);
     }
