@@ -1,28 +1,30 @@
 ---
 Nombre: Usar el saldo calculado por el servidor
-Estado: Pendiente
-Resumen: Al añadir o borrar gastos de una tarjeta compartida, la app recalcula el saldo en el cliente e ignora el que devuelven las RPC; debe adoptar el saldo del servidor como fuente de verdad.
+Estado: Hecha
+Resumen: En tarjetas compartidas, el saldo optimista local se sustituye por el que devuelven add_shared_expense y remove_shared_expense; si la RPC falla, la tarjeta se vuelve a sincronizar desde get_shared_card.
 Decisiones: []
 Bloqueada: []
 Fecha de creación: 2026-10-16T21:45:00+02:00
-Última modificación: 2026-10-16T21:45:00+02:00
+Última modificación: 2026-10-17T10:30:00+02:00
 ---
 
 # Usar el saldo calculado por el servidor
 
 ## Contexto
 
-Pendiente de la auditoría del 2026-10-16. `add_shared_expense` y
-`remove_shared_expense` devuelven el saldo recalculado en la base, pero
-`GiftCardService` calcula `card.balance ± amount` en local y descarta ese valor.
-Si dos dispositivos editan a la vez, el saldo local puede divergir.
+Pendiente de la auditoría del 2026-10-16. Las RPC de gastos devuelven el saldo
+recalculado en la base, pero `GiftCardService` calculaba `card.balance ± amount`
+en local y descartaba ese valor.
 
 ## Alcance
 
-- En tarjetas compartidas, sustituir el saldo optimista por el que devuelve la
-  RPC (o por el de `get_shared_card` tras el aviso de Realtime).
-- Tests unitarios del servicio.
+- `addExpense` y `deleteExpense` aplican el saldo devuelto por la RPC; ante un
+  error, `syncSharedCard` recupera el estado remoto en vez de dejar el saldo
+  optimista.
 
 ## Verificación
 
-`pnpm test`, más la compuerta de [[README#Seguridad, coste y cumplimiento]].
+- El test de aislamiento comprueba que el saldo lo calcula el servidor
+  (90 tras crear con un gasto de 10; 75 tras otro de 15). `supabase test db`
+  29/29 y `ng test` 6/6 (2026-10-17).
+- Pendiente de comprobar en producción junto con el despliegue de la rama.

@@ -3,10 +3,10 @@ Nombre: Excepción - gift_card RPC públicas
 Tipo: Excepción
 Estado: Vigente
 Regla: Las funciones SECURITY DEFINER no son ejecutables por anon salvo excepción escrita.
-Objeto: gift_card.get_shared_card(uuid), create_shared_card(…), add_shared_expense(…), remove_shared_expense(…), update_shared_card_color(…), claim_shared_card(uuid, text)
-Resumen: Las seis RPC son la única API de las tarjetas compartidas (la app no tiene Auth); anon las ejecuta a propósito. Leen por id exacto, editan solo con el token cuyo hash coincide y tienen límites de tamaño y cantidad.
+Objeto: gift_card.get_shared_card(uuid), create_shared_card(…), add_shared_expense(…), remove_shared_expense(…), update_shared_card_color(…), delete_shared_card(uuid, text), claim_shared_card(uuid, text)
+Resumen: Las siete RPC son la única API de las tarjetas compartidas (la app no tiene Auth); anon las ejecuta a propósito. Leen por id exacto, editan solo con el token cuyo hash coincide y tienen límites de tamaño y cantidad.
 Revisar antes de: 2027-01-01
-Última modificación: 2026-10-16T21:30:00+02:00
+Última modificación: 2026-10-17T10:30:00+02:00
 ---
 
 # Excepción - gift_card RPC públicas
@@ -28,8 +28,9 @@ Qué exponen:
 
 - `get_shared_card(p_id)`: una tarjeta y sus gastos, solo si se conoce su id
   (UUID del enlace). No permite listar.
-- `create_shared_card`, `add_shared_expense`, `remove_shared_expense` y
-  `update_shared_card_color`: crean o editan solo con el token de edición cuyo
+- `create_shared_card`, `add_shared_expense`, `remove_shared_expense`,
+  `update_shared_card_color` y `delete_shared_card` (dejar de compartir): crean,
+  editan o borran solo con el token de edición cuyo
   SHA-256 está guardado; un id existente nunca se sobrescribe.
 - `claim_shared_card`: reclamo de tarjetas compartidas antes del token; solo
   funciona sobre tarjetas sin token y hasta el 2026-12-31. Retirarla después.
@@ -43,5 +44,6 @@ Qué exponen:
   `broadcast_card_change`) no son ejecutables por la API.
 - Cada función lleva `comment on function … is 'excepcion: Excepción -
   gift_card RPC públicas'`
-  (`supabase/migrations/20261016200000_gift_card_security_exceptions.sql`).
+  (`supabase/migrations/20261016200000_gift_card_security_exceptions.sql` y,
+  para `delete_shared_card`, `20261017090000_gift_card_delete_shared_card.sql`).
 - Comprobado por `supabase/tests/10_aislamiento_gift_card.test.sql`.

@@ -1,36 +1,38 @@
 ---
 Nombre: Corregir las infracciones de accesibilidad
-Estado: Pendiente
-Resumen: AXE falla en 7 de 8 vistas (listado, detalle y vista compartida, en tema claro y oscuro) por contraste insuficiente (entre otros, #FF9500 y #34C759) y por botones y controles sin nombre accesible, incluido el selector de color.
-Decisiones: []
+Estado: Hecha
+Resumen: AXE pasa sin infracciones en 14 vistas (listado, detalle, compartida, formulario y páginas legales, en claro y oscuro) tras la paleta AA, los tokens nuevos, los nombres accesibles, el label del importe, el diálogo del formulario y las tarjetas navegables con teclado.
+Decisiones: ["[[Paleta y tokens con contraste AA]]"]
 Bloqueada: []
 Fecha de creación: 2026-10-16T21:45:00+02:00
-Última modificación: 2026-10-16T21:45:00+02:00
+Última modificación: 2026-10-17T10:30:00+02:00
 ---
 
 # Corregir las infracciones de accesibilidad
 
 ## Contexto
 
-Pendiente de la auditoría del 2026-10-16. La regla de WCAG AA existía sin
-ninguna comprobación. La primera ejecución de `pnpm run test:a11y`
-(`e2e/a11y.spec.ts`), el 2026-10-16, dio 7 fallos y 1 éxito (el detalle en tema
-oscuro). Reglas de AXE infringidas: `color-contrast` y `button-name`, con botones
-o controles que no tienen nombre accesible por ninguna vía (label explícito o
-implícito, `aria-label`, `aria-labelledby`).
+Pendiente de la auditoría del 2026-10-16. La primera ejecución de
+`pnpm run test:a11y` dio 7 fallos de 8 (`color-contrast` y `button-name`).
 
 ## Alcance
 
-- Nombres accesibles en los botones de icono y en las muestras del selector de
-  color (`aria-label`, `aria-pressed`).
-- Labels asociados a todos los campos del formulario.
-- Contraste AA de los colores de tarjeta y de estado (`#FF9500`, `#34C759`):
-  ajustar los tokens y documentarlo en
-  [[Decisiones visuales/Decisiones visuales.base|Decisiones visuales]].
-- Revisión manual de teclado y foco.
+- Contraste: [[Paleta y tokens con contraste AA]].
+- Nombres accesibles en los botones de icono (eliminar, añadir, tema) y en las
+  muestras de color (`aria-label` con el nombre del color y `aria-pressed`).
+- Label del importe del gasto; formulario como `role="dialog"` con título,
+  foco inicial y cierre con Escape.
+- En el listado, la tarjeta es un enlace real y el botón de eliminar queda
+  fuera de él, visible con foco y en pantallas táctiles.
+- Jerarquía de encabezados (`h1` por vista) y anillo de foco global.
 
 ## Verificación
 
-`pnpm run test:a11y` sin infracciones y el job `Seguridad` en verde. Después,
-marcar el job como obligatorio en `master`
-([[Seguridad/Checklist de lanzamiento|checklist]]).
+- `pnpm run test:a11y`: 14/14 sin infracciones (2026-10-17). Cada vista
+  comprueba además su `h1`, para no validar una pantalla vacía o de error.
+- Revisión de teclado en el build de producción: orden de tabulación tema →
+  tarjeta → eliminar → añadir → enlaces legales, foco visible en todos, Enter
+  abre la tarjeta, el diálogo recibe el foco y se cierra con Escape.
+- Pendiente fuera del código: revisión con lector de pantalla y marcar el job
+  `Seguridad` como obligatorio en `master` (ver
+  [[Seguridad/Checklist de lanzamiento|checklist]]).
