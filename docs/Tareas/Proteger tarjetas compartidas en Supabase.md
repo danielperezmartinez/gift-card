@@ -1,11 +1,11 @@
 ---
 Nombre: Proteger tarjetas compartidas en Supabase
-Estado: En curso
+Estado: Hecha
 Resumen: Cerrado el acceso directo a gift_card con la clave publicable; lectura por id solo vía RPC, edición con token secreto, Realtime por broadcast sin datos, límites de tamaño y migraciones versionadas en supabase/migrations.
 Decisiones: []
 Bloqueada: []
 Fecha de creación: 2026-10-16T20:20:00+02:00
-Última modificación: 2026-10-16T20:40:00+02:00
+Última modificación: 2026-10-16T20:55:00+02:00
 ---
 
 # Proteger tarjetas compartidas en Supabase
@@ -56,7 +56,7 @@ esquema no estaba versionado. Ver [[Migrar Gift Card a base compartida]].
   `*_security_definer_function_executable` (WARN) para las seis funciones
   públicas; son la API intencionada y validan id o token internamente.
 
-## Pendiente
-
-- Desplegar el cliente nuevo: el desplegado en producción usa las tablas
-  directamente y no puede compartir ni sincronizar hasta entonces.
+- Producción: desplegado por Git (`dpl_DC1RUkkoeXBrqX25NXcMnwGMhZnw`, commit
+  `55a6a2d`, `READY`). En `https://gift-card-bice.vercel.app` se compartió una
+  tarjeta de prueba, la vista `/shared/:id` se actualizó en directo al añadir un
+  gasto y la tarjeta se borró después.
