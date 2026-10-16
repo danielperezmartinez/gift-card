@@ -14,6 +14,16 @@ export const routes: Routes = [
     loadComponent: () => import('./components/shared-card/shared-card.component').then(m => m.SharedCardComponent)
   },
   {
+    path: 'aviso-legal',
+    title: 'Aviso legal · Tarjetas regalo',
+    loadComponent: () => import('./components/legal-notice/legal-notice.component').then(m => m.LegalNoticeComponent)
+  },
+  {
+    path: 'privacidad',
+    title: 'Política de privacidad · Tarjetas regalo',
+    loadComponent: () => import('./components/privacy-policy/privacy-policy.component').then(m => m.PrivacyPolicyComponent)
+  },
+  {
     path: '**',
     redirectTo: ''
   }

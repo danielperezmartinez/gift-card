@@ -31,6 +31,8 @@ const ROUTES = [
   { name: 'listado con tarjetas', path: '/', cards: [LOCAL_CARD], heading: 'Mis Tarjetas' },
   { name: 'detalle', path: `/card/${CARD_ID}`, cards: [LOCAL_CARD], heading: LOCAL_CARD.name },
   { name: 'vista compartida', path: `/shared/${CARD_ID}`, cards: [], heading: SHARED_CARD.name },
+  { name: 'aviso legal', path: '/aviso-legal', cards: [], heading: 'Aviso legal' },
+  { name: 'política de privacidad', path: '/privacidad', cards: [], heading: 'Política de privacidad' },
 ];
 
 async function prepare(page: Page, cards: unknown[], dark: boolean) {

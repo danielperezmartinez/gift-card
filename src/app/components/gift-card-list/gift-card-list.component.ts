@@ -65,7 +65,7 @@ import { logError } from '../../services/logger';
     .container {
       max-width: 600px;
       margin: 0 auto;
-      padding: 2rem 1.5rem 6rem;
+      padding: 2rem 1.5rem 0;
     }
     
     header { margin-bottom: 2.5rem; }
