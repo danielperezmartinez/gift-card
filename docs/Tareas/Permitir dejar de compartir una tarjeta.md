@@ -1,11 +1,11 @@
 ---
 Nombre: Permitir dejar de compartir una tarjeta
 Estado: En curso
-Resumen: Añadidos la RPC gift_card.delete_shared_card (exige el token), el botón «Dejar de compartir» en el detalle y el borrado remoto al eliminar una tarjeta compartida. Probado en local; falta aplicar la migración en el remoto y verificarlo en producción.
+Resumen: Añadidos la RPC gift_card.delete_shared_card (exige el token, ya aplicada en devappsdpm-db), el botón «Dejar de compartir» en el detalle y el borrado remoto al eliminar una tarjeta compartida. Falta verificarlo en producción tras el despliegue.
 Decisiones: []
-Bloqueada: ["[[Aplicar en remoto la migración de excepciones de seguridad]]"]
+Bloqueada: []
 Fecha de creación: 2026-10-16T21:45:00+02:00
-Última modificación: 2026-10-17T10:30:00+02:00
+Última modificación: 2026-10-17T11:15:00+02:00
 ---
 
 # Permitir dejar de compartir una tarjeta
@@ -25,7 +25,7 @@ ambos casos se avisa de que el enlace dejará de funcionar.
 
 ## Alcance
 
-- `supabase/migrations/20261017090000_gift_card_delete_shared_card.sql`:
+- `supabase/migrations/20261016231900_gift_card_delete_shared_card.sql`:
   `delete_shared_card(p_card_id, p_edit_token)` (`SECURITY DEFINER`,
   `search_path = ''`, comentario de excepción), añadida a
   [[Excepción - gift_card RPC públicas]].
@@ -36,5 +36,5 @@ ambos casos se avisa de que el enlace dejará de funcionar.
 
 - `supabase test db` 29/29 en local (2026-10-17): sin token no se deja de
   compartir, con token sí, y después el enlace no devuelve nada.
-- Pendiente: aplicar la migración en devappsdpm-db y probar en producción
+- Migración aplicada en devappsdpm-db (2026-10-17). Pendiente: probar en producción
   compartir → dejar de compartir → enlace sin datos.

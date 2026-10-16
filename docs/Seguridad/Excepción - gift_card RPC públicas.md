@@ -44,6 +44,6 @@ Qué exponen:
   `broadcast_card_change`) no son ejecutables por la API.
 - Cada función lleva `comment on function … is 'excepcion: Excepción -
   gift_card RPC públicas'`
-  (`supabase/migrations/20261016200000_gift_card_security_exceptions.sql` y,
-  para `delete_shared_card`, `20261017090000_gift_card_delete_shared_card.sql`).
+  (`supabase/migrations/20261016231856_gift_card_security_exceptions.sql` y,
+  para `delete_shared_card`, `20261016231900_gift_card_delete_shared_card.sql`).
 - Comprobado por `supabase/tests/10_aislamiento_gift_card.test.sql`.
