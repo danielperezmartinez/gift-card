@@ -52,6 +52,8 @@ informar al usuario.
 
 ### Tareas
 
+_Versión del sistema: 1._
+
 Gestión de trabajos como notas con estado, en `Tareas/`.
 
 - `Estado` ∈ `Planificando` · `Pendiente` · `En curso` · `Hecha` · `Archivada`.
@@ -64,6 +66,8 @@ Gestión de trabajos como notas con estado, en `Tareas/`.
 - Panel: [[Tareas/Tareas.base]]
 
 ### Decisiones visuales
+
+_Versión del sistema: 1._
 
 Acuerdos sobre lenguaje visual, tokens y componentes, en `Decisiones visuales/`.
 Sigue el patrón ADR (frontmatter YAML + `.base`).
@@ -78,6 +82,8 @@ Sigue el patrón ADR (frontmatter YAML + `.base`).
 
 ### Catálogo técnico
 
+_Versión del sistema: 1._
+
 Superficie pública reutilizable (componentes, servicios), en `Catálogo técnico/`.
 Cada nota es un puntero corto; la implementación sigue siendo la fuente de
 verdad del contrato detallado.
@@ -91,6 +97,110 @@ verdad del contrato detallado.
   (transversal: tema, acceso a datos).
 - Vocabulario de `Feature`: `Gift Cards` · `Shared UI` · `Tema` · `Núcleo`.
 - Nota-índice: [[Catálogo técnico]] · Panel: [[Catálogo técnico/Catálogo técnico.base]]
+
+### Seguridad, coste y cumplimiento
+
+_Versión del sistema: 1._
+
+Carpeta [[Seguridad/Seguridad.base|Seguridad/]]: excepciones justificadas a estas
+reglas y la [[Seguridad/Checklist de lanzamiento|checklist de lanzamiento]].
+Estas reglas aplican a todo cambio, lo haga una persona o un agente, y también a
+lo que se haga con MCP, CLI o panel.
+
+#### Backend y datos (Supabase)
+
+- **RLS activado no basta.** Cada política expresa quién puede hacer qué sobre
+  qué filas; lo normal es `owner_id = (select auth.uid())`.
+- Prohibido `USING (true)` o `WITH CHECK (true)` en políticas de `INSERT`,
+  `UPDATE`, `DELETE` o `ALL`. En `SELECT` solo con una excepción escrita en
+  `Seguridad/` y referenciada en la política
+  (`comment on policy … is 'excepcion: <nombre de la nota>'`).
+- Los datos compartidos por enlace se sirven con una función RPC que recibe el
+  token y devuelve solo esa fila. La tabla nunca es listable por `anon`.
+- Las funciones `SECURITY DEFINER` llevan `set search_path = ''` y nombres
+  cualificados con esquema, y se revoca `EXECUTE` a `anon` (y a `public`) salvo
+  excepción escrita. Si no necesitan saltarse RLS, se usa `SECURITY INVOKER`.
+- Las extensiones con efectos fuera de la base de datos (`pg_net`, `http`) quedan
+  fuera del alcance de `anon` y `authenticated`.
+- Los esquemas expuestos por la API son los mínimos. Lo interno vive en un
+  esquema `*_private` no expuesto.
+- **Todo el DDL** (tablas, políticas, funciones, grants, buckets y sus límites)
+  vive en migraciones versionadas del repo. Nada se hace solo en el panel ni solo
+  por MCP; si se hizo, se vuelca a una migración en el mismo cambio.
+- "El Security Advisor no da avisos" **no** cuenta como verificación. La
+  verificación son los tests de `supabase/tests/` (ver "Comprobaciones").
+
+#### Coste y abuso
+
+- Todo lo que un usuario puede crear tiene **tope de tamaño y de cantidad**:
+  buckets con `file_size_limit` y `allowed_mime_types`, cuota por usuario
+  (comprobada en la política de Storage o en un trigger), `CHECK` de longitud en
+  columnas de texto y tope de filas por usuario en tablas que crecen.
+- Nada de llamadas recursivas ni bucles sin tope: triggers que llaman a funciones
+  HTTP, funciones que se invocan a sí mismas, reintentos sin límite, efectos del
+  cliente que se disparan en bucle. Todo reintento tiene un máximo y espera entre
+  intentos.
+- Los endpoints públicos (funciones serverless, Edge Functions, RPC accesibles a
+  `anon`) tienen límite de peticiones.
+- Este proyecto comparte el proyecto Supabase `devappsdpm-db` (plan gratuito:
+  base de datos, Auth, Storage, Realtime y cuota del plan) con **nocendland** y
+  **outify**. Agotar Auth, Storage o la cuota del plan aquí deja sin servicio a
+  todas: cualquier límite se diseña pensando en el conjunto.
+
+#### Secretos
+
+- La clave publicable (`anon` / `sb_publishable_…`) puede ir en el cliente.
+- La clave secreta (`service_role` / `sb_secret_…`) y cualquier otro secreto solo
+  viven en el servidor o en el CI, nunca en el código del cliente ni en el repo.
+- Cada secreto está solo en los entornos que lo necesitan (p. ej. Production y no
+  Preview si las previews no lo usan), marcado como sensible donde la plataforma
+  lo permita.
+
+#### Legal y privacidad (UE / España)
+
+> Estas reglas resumen obligaciones habituales y no son asesoramiento legal. Ante
+> dudas concretas, consulta a un profesional.
+
+- Antes de publicar: **aviso legal** (LSSI-CE, art. 10) y **política de
+  privacidad** (RGPD, art. 13), enlazados desde todas las páginas.
+- No se envían datos personales ni la ubicación a terceros (APIs de mapas, de
+  analítica, de IA…) sin avisar antes en la interfaz y sin una acción explícita
+  del usuario que lo dispare. Cada tercero que reciba datos aparece en la
+  política de privacidad.
+- Las comunicaciones comerciales (emails, notificaciones push) requieren
+  consentimiento expreso, separado de aceptar los términos, y una forma sencilla
+  de darse de baja.
+- El banner de cookies solo es necesario si hay cookies o almacenamiento no
+  técnicos (analítica, publicidad, terceros). Si existe, rechazar es tan fácil
+  como aceptar y nada no técnico se carga antes del consentimiento.
+
+#### Accesibilidad
+
+- Objetivo: **WCAG 2.2 nivel AA**. AXE en el CI sin infracciones; además,
+  revisión manual de teclado y foco en los flujos nuevos (AXE no detecta todo).
+
+#### Comprobaciones y compuerta de "Hecha"
+
+- Comprobaciones del proyecto:
+  - Tests de base de datos (pgTAP) en `supabase/tests/`: catálogo
+    (`00_seguridad_catalogo.test.sql`) y aislamiento de `gift_card`
+    (`10_aislamiento_gift_card.test.sql`). Se ejecutan contra una base local
+    construida solo con `supabase/migrations/`:
+    `pnpm dlx supabase@2.119.0 db start` y `pnpm dlx supabase@2.119.0 test db`.
+    Nunca contra el proyecto remoto compartido.
+  - AXE con Playwright en `e2e/a11y.spec.ts`: `pnpm run test:a11y`.
+  - Ambos, más la búsqueda de claves secretas en `dist/`, en
+    `.github/workflows/seguridad.yml`.
+- **Una tarea que toque backend o UI no pasa a `Hecha`** hasta que esas
+  comprobaciones estén en verde, y su sección "Verificación" lo deja escrito (qué
+  se ejecutó y dónde). Si el cambio añade tablas, políticas, funciones o rutas,
+  añade también su test en el mismo cambio.
+- Una excepción a estas reglas es una nota `Excepción` en `Seguridad/` con su
+  justificación. Sin nota, no hay excepción.
+- `Estado` de una excepción ∈ `Vigente` · `Retirada`. Al retirar una excepción se
+  quita también el comentario `excepcion:` del objeto. Una excepción vencida
+  (`Revisar antes de` en el pasado) se revisa antes de cualquier otro cambio
+  sobre ese objeto.
 
 ## Reglas fundamentales del proyecto
 
@@ -124,8 +234,8 @@ verdad del contrato detallado.
   hacen llamadas directas a Supabase desde componentes.
 - **Supabase** para auth y base de datos PostgreSQL. Las credenciales van en
   `src/environments/environment.ts` (no se commitea).
-- Accesibilidad: debe pasar todas las comprobaciones AXE y cumplir WCAG AA
-  (foco, contraste, ARIA).
+- Accesibilidad: ver el apartado "Accesibilidad" de
+  [[#Seguridad, coste y cumplimiento]].
 - **TypeScript 5.9** en modo estricto. Evitar `any`; usar `unknown` cuando el
   tipo sea incierto. Preferir inferencia de tipos cuando sea evidente.
 - **Vitest** como test runner (`ng test`). **Prettier** para formateo.
