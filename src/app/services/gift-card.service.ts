@@ -32,12 +32,41 @@ export class GiftCardService {
     const cards = this._cards();
     for (const card of cards) {
       if (card.isShared) {
+        if (!card.editToken) {
+          this.claimLegacySharedCard(card.id);
+        }
         this.syncSharedCard(card.id);
         this.supabase.subscribeToCardUpdates(card.id, () => {
           this.syncSharedCard(card.id);
         });
       }
     }
+  }
+
+  // Cards shared before edit tokens existed have no owner yet; the first device
+  // that still holds them claims ownership.
+  private async claimLegacySharedCard(id: string) {
+    const editToken = this.generateEditToken();
+    try {
+      const claimed = await this.supabase.claimSharedCard(id, editToken);
+      if (!claimed) {
+        console.error('Shared card could not be claimed; remote edits are disabled', id);
+        return;
+      }
+      this._cards.update(cards =>
+        cards.map(card => (card.id === id ? { ...card, editToken } : card)),
+      );
+    } catch (e) {
+      console.error('Failed to claim shared card', e);
+    }
+  }
+
+  private generateEditToken(): string {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    return btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
   }
 
   private async syncSharedCard(id: string) {
@@ -62,12 +91,14 @@ export class GiftCardService {
 
   async updateCardColor(cardId: string, color: string) {
     let isShared = false;
-    
+    let editToken: string | undefined;
+
     this._cards.update(cards => {
       if (!Array.isArray(cards)) return [];
       return cards.map(card => {
         if (card.id === cardId) {
           isShared = !!card.isShared;
+          editToken = card.editToken;
           return { ...card, color };
         }
         return card;
@@ -76,7 +107,7 @@ export class GiftCardService {
 
     if (isShared) {
       try {
-        await this.supabase.updateCardColor(cardId, color);
+        await this.supabase.updateCardColor(cardId, this.requireEditToken(editToken), color);
       } catch (e) {
         console.error('Failed to sync color to Supabase', e);
       }
@@ -87,10 +118,11 @@ export class GiftCardService {
     const card = this._cards().find(c => c.id === id);
     if (!card) return;
 
-    const cardToShare = { ...card, isShared: true };
+    const editToken = this.generateEditToken();
 
     // Upload to Supabase first
-    await this.supabase.shareCard(cardToShare);
+    const balance = await this.supabase.shareCard(card, editToken);
+    const cardToShare: GiftCard = { ...card, balance, isShared: true, editToken };
 
     // Mark as shared locally
     this._cards.update(cards => {
@@ -125,13 +157,10 @@ export class GiftCardService {
       createdAt: Date.now(),
       color
     };
-    
-    console.log('Adding new card:', newCard);
+
     this._cards.update(cards => {
       const currentCards = Array.isArray(cards) ? cards : [];
-      const updated = [...currentCards, newCard];
-      console.log('Updated cards list:', updated);
-      return updated;
+      return [...currentCards, newCard];
     });
   }
 
@@ -151,6 +180,7 @@ export class GiftCardService {
     };
 
     let isShared = false;
+    let editToken: string | undefined;
     let newBalance = 0;
 
     this._cards.update(cards => {
@@ -158,6 +188,7 @@ export class GiftCardService {
       return cards.map(card => {
         if (card.id === cardId) {
           isShared = !!card.isShared;
+          editToken = card.editToken;
           newBalance = card.balance - amount;
           return {
             ...card,
@@ -171,7 +202,7 @@ export class GiftCardService {
 
     if (isShared) {
       try {
-        await this.supabase.addExpense(cardId, expense, newBalance);
+        await this.supabase.addExpense(cardId, this.requireEditToken(editToken), expense);
       } catch (e) {
         console.error('Failed to sync expense to Supabase', e);
       }
@@ -180,8 +211,9 @@ export class GiftCardService {
 
   async deleteExpense(cardId: string, expenseId: string) {
     let isShared = false;
+    let editToken: string | undefined;
     let newBalance = 0;
-    
+
     this._cards.update(cards => {
       if (!Array.isArray(cards)) return [];
       return cards.map(card => {
@@ -190,6 +222,7 @@ export class GiftCardService {
           if (!expenseToDelete) return card;
           
           isShared = !!card.isShared;
+          editToken = card.editToken;
           newBalance = card.balance + expenseToDelete.amount;
           
           return {
@@ -204,11 +237,18 @@ export class GiftCardService {
 
     if (isShared) {
       try {
-        await this.supabase.removeExpense(cardId, expenseId, newBalance);
+        await this.supabase.removeExpense(cardId, this.requireEditToken(editToken), expenseId);
       } catch (e) {
         console.error('Failed to remove expense from Supabase', e);
       }
     }
+  }
+
+  private requireEditToken(editToken: string | undefined): string {
+    if (!editToken) {
+      throw new Error('This device does not own the shared card');
+    }
+    return editToken;
   }
 
   private loadFromStorage(): GiftCard[] {

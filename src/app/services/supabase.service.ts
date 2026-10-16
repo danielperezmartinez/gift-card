@@ -1,11 +1,24 @@
-import { Injectable, signal } from '@angular/core';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Injectable } from '@angular/core';
+import { createClient, RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 import { GiftCard, Expense } from '../models/gift-card.model';
 import { Database } from '../models/database';
 
 const GIFT_CARD_SCHEMA = 'gift_card' as const;
 
+interface SharedCardPayload {
+  id: string;
+  name: string;
+  description: string;
+  initial_amount: number;
+  balance: number;
+  created_at: number;
+  color: string | null;
+  expenses: Expense[];
+}
+
+// Tables are closed to the public key: every read and write goes through the
+// gift_card RPC functions, and edits require the card's edit token.
 @Injectable({
   providedIn: 'root',
 })
@@ -20,140 +33,100 @@ export class SupabaseService {
     );
   }
 
-  async shareCard(card: GiftCard): Promise<void> {
-    // Upsert the card first
-    const { error: cardError } = await this.supabase.from('shared_cards').upsert({
-      id: card.id,
-      name: card.name,
-      description: card.description,
-      initial_amount: card.initialAmount,
-      balance: card.balance,
-      created_at: card.createdAt,
-      color: card.color,
+  async shareCard(card: GiftCard, editToken: string): Promise<number> {
+    const { data, error } = await this.supabase.rpc('create_shared_card', {
+      p_id: card.id,
+      p_name: card.name,
+      p_description: card.description,
+      p_initial_amount: card.initialAmount,
+      p_created_at: card.createdAt,
+      p_color: card.color ?? null,
+      p_edit_token: editToken,
+      p_expenses: card.expenses.map((e) => ({ id: e.id, amount: e.amount, date: e.date })),
     });
 
-    if (cardError) throw cardError;
+    if (error) throw error;
+    return data;
+  }
 
-    // Then insert all expenses if any
-    if (card.expenses && card.expenses.length > 0) {
-      const expensesToInsert = card.expenses.map((e) => ({
-        id: e.id,
-        card_id: card.id,
-        amount: e.amount,
-        date: e.date,
-      }));
+  async claimSharedCard(cardId: string, editToken: string): Promise<boolean> {
+    const { data, error } = await this.supabase.rpc('claim_shared_card', {
+      p_card_id: cardId,
+      p_edit_token: editToken,
+    });
 
-      const { error: expensesError } = await this.supabase
-        .from('shared_expenses')
-        .upsert(expensesToInsert);
-
-      if (expensesError) throw expensesError;
-    }
+    if (error) throw error;
+    return data;
   }
 
   async getSharedCard(id: string): Promise<GiftCard | null> {
-    const { data: cardData, error: cardError } = await this.supabase
-      .from('shared_cards')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await this.supabase.rpc('get_shared_card', { p_id: id });
 
-    if (cardError || !cardData) return null;
+    if (error) throw error;
+    if (!data) return null;
 
-    const { data: expensesData, error: expensesError } = await this.supabase
-      .from('shared_expenses')
-      .select('*')
-      .eq('card_id', id)
-      .order('date', { ascending: false });
-
-    if (expensesError) throw expensesError;
-
+    const card = data as unknown as SharedCardPayload;
     return {
-      id: cardData.id,
-      name: cardData.name,
-      description: cardData.description,
-      initialAmount: cardData.initial_amount,
-      balance: cardData.balance,
-      createdAt: cardData.created_at,
-      color: cardData.color ?? undefined,
+      id: card.id,
+      name: card.name,
+      description: card.description,
+      initialAmount: Number(card.initial_amount),
+      balance: Number(card.balance),
+      createdAt: card.created_at,
+      color: card.color ?? undefined,
       isShared: true,
-      expenses: (expensesData || []).map((e) => ({
+      expenses: card.expenses.map((e) => ({
         id: e.id,
-        amount: e.amount,
+        amount: Number(e.amount),
         date: e.date,
       })),
     };
   }
 
-  async addExpense(cardId: string, expense: Expense, newBalance: number): Promise<void> {
-    // Add the expense
-    const { error: expenseError } = await this.supabase.from('shared_expenses').insert({
-      id: expense.id,
-      card_id: cardId,
-      amount: expense.amount,
-      date: expense.date,
+  async addExpense(cardId: string, editToken: string, expense: Expense): Promise<number> {
+    const { data, error } = await this.supabase.rpc('add_shared_expense', {
+      p_card_id: cardId,
+      p_edit_token: editToken,
+      p_expense_id: expense.id,
+      p_amount: expense.amount,
+      p_date: expense.date,
     });
 
-    if (expenseError) throw expenseError;
-
-    // Update the card balance
-    const { error: cardError } = await this.supabase
-      .from('shared_cards')
-      .update({ balance: newBalance })
-      .eq('id', cardId);
-
-    if (cardError) throw cardError;
+    if (error) throw error;
+    return data;
   }
 
-  async removeExpense(cardId: string, expenseId: string, newBalance: number): Promise<void> {
-    // Delete the expense
-    const { error: expenseError } = await this.supabase
-      .from('shared_expenses')
-      .delete()
-      .eq('id', expenseId);
+  async removeExpense(cardId: string, editToken: string, expenseId: string): Promise<number> {
+    const { data, error } = await this.supabase.rpc('remove_shared_expense', {
+      p_card_id: cardId,
+      p_edit_token: editToken,
+      p_expense_id: expenseId,
+    });
 
-    if (expenseError) throw expenseError;
-
-    // Update the card balance
-    const { error: cardError } = await this.supabase
-      .from('shared_cards')
-      .update({ balance: newBalance })
-      .eq('id', cardId);
-
-    if (cardError) throw cardError;
+    if (error) throw error;
+    return data;
   }
 
-  async updateCardColor(cardId: string, color: string): Promise<void> {
-    const { error: cardError } = await this.supabase
-      .from('shared_cards')
-      .update({ color })
-      .eq('id', cardId);
+  async updateCardColor(cardId: string, editToken: string, color: string): Promise<void> {
+    const { error } = await this.supabase.rpc('update_shared_card_color', {
+      p_card_id: cardId,
+      p_edit_token: editToken,
+      p_color: color,
+    });
 
-    if (cardError) throw cardError;
+    if (error) throw error;
   }
 
-  subscribeToCardUpdates(cardId: string, callback: () => void) {
+  // The database broadcasts an empty "changed" event; subscribers re-fetch through
+  // get_shared_card so no card data travels over the public channel.
+  subscribeToCardUpdates(cardId: string, callback: () => void): RealtimeChannel {
     return this.supabase
-      .channel(`card_${cardId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: GIFT_CARD_SCHEMA, table: 'shared_cards', filter: `id=eq.${cardId}` },
-        () => callback(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: GIFT_CARD_SCHEMA,
-          table: 'shared_expenses',
-          filter: `card_id=eq.${cardId}`,
-        },
-        () => callback(),
-      )
+      .channel(`${GIFT_CARD_SCHEMA}:${cardId}`)
+      .on('broadcast', { event: 'changed' }, () => callback())
       .subscribe();
   }
 
-  unsubscribe(channel: ReturnType<SupabaseClient<Database, typeof GIFT_CARD_SCHEMA>['channel']>) {
+  unsubscribe(channel: RealtimeChannel) {
     this.supabase.removeChannel(channel);
   }
 }

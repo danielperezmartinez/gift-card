@@ -13,17 +13,17 @@ import { CommonModule } from '@angular/common';
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
           <div class="form-group">
             <label for="name">Nombre de la tarjeta</label>
-            <input id="name" type="text" formControlName="name" placeholder="Ej. Amazon, Netflix...">
+            <input id="name" type="text" formControlName="name" maxlength="100" placeholder="Ej. Amazon, Netflix...">
           </div>
           
           <div class="form-group">
             <label for="description">Descripción</label>
-            <textarea id="description" formControlName="description" placeholder="Añade una nota..."></textarea>
+            <textarea id="description" formControlName="description" maxlength="500" placeholder="Añade una nota..."></textarea>
           </div>
           
           <div class="form-group">
             <label for="amount">Importe inicial (€)</label>
-            <input id="amount" type="number" formControlName="amount" step="0.01">
+            <input id="amount" type="number" formControlName="amount" step="0.01" max="100000">
           </div>
 
           <div class="form-group">
@@ -196,9 +196,9 @@ export class GiftCardFormComponent {
   availableColors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
 
   form = this.fb.group({
-    name: ['', Validators.required],
-    description: ['', Validators.required],
-    amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
+    name: ['', [Validators.required, Validators.maxLength(100)]],
+    description: ['', [Validators.required, Validators.maxLength(500)]],
+    amount: [null as number | null, [Validators.required, Validators.min(0.01), Validators.max(100000)]],
     color: [null as string | null]
   });
 
