@@ -258,7 +258,9 @@ lo que se haga con MCP, CLI o panel.
     `pre-push`), activados con `pnpm install` (script `prepare`).
   - Todo ello, más la búsqueda de claves secretas en `dist/` y el job `fugas`
     (gitleaks sobre historial, mensajes, rama y PR), en
-    `.github/workflows/seguridad.yml`.
+    `.github/workflows/seguridad.yml`. Sus jobs son obligatorios para
+    fusionar en `master` (flujo en la regla 3 de
+    [[#Reglas fundamentales del proyecto]]).
 - **Una tarea que toque backend o UI no pasa a `Hecha`** hasta que esas
   comprobaciones estén en verde, y su sección "Verificación" lo deja escrito (qué
   se ejecutó y dónde). Si el cambio añade tablas, políticas, funciones o rutas,
@@ -310,10 +312,39 @@ lo que se haga con MCP, CLI o panel.
   tipo sea incierto. Preferir inferencia de tipos cuando sea evidente.
 - **Vitest** como test runner (`ng test`). **Prettier** para formateo.
 
-### 3. Versionado y despliegue
+### 3. El código se publica por pull request y todo deploy debe verificarse
 
-- Versión actual: `0.1.0` (SemVer) en `package.json`.
-- Build de producción con `ng build` → `dist/gift-card/`.
+Esta regla es la fuente única del flujo de publicación; el resto de la bóveda
+solo enlaza aquí. La rama principal es `master`.
+
+| Cambio | Cómo se publica | Versión | Despliegue |
+| --- | --- | --- | --- |
+| **Código**: cualquier archivo fuera de `docs/` | Rama corta y PR contra `master`, fusionada con *squash* | Sube en la propia PR | Vercel despliega al fusionar |
+| **Solo bóveda**: todo dentro de `docs/` | Commit y push directo a `master` | No cambia | No hay (Vercel omite el build) |
+
+- Un commit que mezcle bóveda y código cuenta como **código**.
+- **Nunca push directo a `master` de código**, aunque GitHub lo permita a
+  administradores. `master` exige los checks de
+  `.github/workflows/seguridad.yml` (pgTAP, AXE y fugas) y que la rama esté al
+  día para fusionar; un push directo se despliega sin esperar al CI, por eso el
+  código va por PR.
+- **Versión** (SemVer en `package.json`): cada PR de código la sube; *patch*
+  para correcciones, configuración y mantenimiento, *minor* para funcionalidad
+  nueva visible. No se fusiona si no supera la de `master`.
+- **Desplegar** = rama propia, PR con `gh`, esperar los checks en verde,
+  fusionar si el usuario lo autorizó (si no, parar con la PR abierta) y verificar
+  que el despliegue de producción queda `READY` en Vercel y funciona. Las
+  correcciones tras un despliegue en `ERROR` son PR nuevas con su versión.
+- **Publicar la bóveda** = commit y push directo a `master` si el cambio solo
+  toca `docs/`.
+- **Cambios en el Supabase compartido** (`devappsdpm-db`): van aparte, con
+  autorización expresa, y se aplican en remoto **antes** de fusionar el frontend
+  que los necesita. El archivo de `supabase/migrations/` lleva la misma versión
+  que registra el ledger remoto (`list_migrations`); si la herramienta asigna
+  otra, se renombra el archivo.
+- Build de producción con `ng build` → `dist/gift-card/`. `vercel.json` define
+  `ignoreCommand` para que Vercel no construya cuando un commit solo cambia
+  `docs/`.
 - Si se modifica el schema de Supabase, regenerar tipos con
   `supabase gen types typescript --project-id <id> > src/app/models/database.ts`.
 
