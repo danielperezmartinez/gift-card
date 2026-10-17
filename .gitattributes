@@ -1,0 +1,2 @@
+# Los hooks son scripts sh: deben conservar LF también en Windows.
+.githooks/* text eol=lf

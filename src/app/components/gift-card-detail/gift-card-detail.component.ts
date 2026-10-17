@@ -4,6 +4,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { GiftCardService } from '../../services/gift-card.service';
 import { FormsModule } from '@angular/forms';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
+import { CARD_COLORS, resolveCardColor } from '../../models/card-colors';
+import { logError } from '../../services/logger';
 
 @Component({
   selector: 'app-gift-card-detail',
@@ -15,22 +17,28 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
         <nav>
           <div class="nav-left">
             <a routerLink="/" class="back-link">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               Volver
             </a>
           </div>
           <div class="nav-right">
             <app-theme-toggle />
             @if (!c.isShared) {
-              <button class="share-link" (click)="onShare()" [disabled]="isSharing()">
+              <button type="button" class="share-link" (click)="onShare()" [disabled]="isSharing()">
                 {{ isSharing() ? 'Compartiendo...' : 'Compartir' }}
               </button>
             } @else {
-              <button class="share-link" (click)="copyShareLink()">
-                {{ copied() ? 'Copiado!' : 'Copiar Link' }}
+              <button type="button" class="share-link" (click)="copyShareLink()">
+                {{ copied() ? '¡Copiado!' : 'Copiar enlace' }}
               </button>
+              @if (c.editToken) {
+                <button type="button" class="share-link" (click)="onUnshare()" [disabled]="isSharing()">
+                  Dejar de compartir
+                </button>
+              }
             }
-            <button class="delete-link" (click)="onDeleteCard()">Eliminar</button>
+            <button type="button" class="delete-link" (click)="onDeleteCard()">Eliminar</button>
+            <span class="visually-hidden" aria-live="polite">{{ copied() ? 'Enlace copiado' : '' }}</span>
           </div>
         </nav>
 
@@ -38,13 +46,13 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
           <div class="card-glass"></div>
           <div class="card-header">
             <span class="chip">Gift Card</span>
-            <div class="logo">
+            <div class="logo" aria-hidden="true">
               <div class="circle"></div>
               <div class="circle"></div>
             </div>
           </div>
           <div class="card-body">
-            <h2 class="card-name">{{ c.name }}</h2>
+            <h1 class="card-name">{{ c.name }}</h1>
             <p class="card-desc">{{ c.description }}</p>
           </div>
           <div class="card-footer">
@@ -58,29 +66,32 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
           </div>
         </div>
 
-        <section class="color-picker">
-          <h3>Personalizar Color</h3>
-          <div class="colors-list">
-            @for (color of availableColors; track color) {
-              <button 
-                class="color-btn" 
-                [style.background]="color" 
-                [class.selected]="color === cardColor()"
-                (click)="onColorSelect(color)"
-                aria-label="Seleccionar color">
+        <section class="color-picker" aria-labelledby="color-picker-title">
+          <h2 id="color-picker-title">Personalizar color</h2>
+          <div class="colors-list" role="group" aria-labelledby="color-picker-title">
+            @for (color of availableColors; track color.value) {
+              <button
+                type="button"
+                class="color-btn"
+                [style.background]="color.value"
+                [class.selected]="color.value === cardColor()"
+                [attr.aria-pressed]="color.value === cardColor()"
+                [attr.aria-label]="color.label"
+                (click)="onColorSelect(color.value)">
               </button>
             }
           </div>
         </section>
 
-        <section class="expense-form">
-          <h3>Añadir Gasto</h3>
+        <section class="expense-form" aria-labelledby="expense-form-title">
+          <h2 id="expense-form-title">Añadir gasto</h2>
           <div class="input-group">
             <div class="input-wrapper">
-              <span class="input-symbol">€</span>
-              <input type="number" [(ngModel)]="expenseAmount" placeholder="0.00" step="0.01" min="0">
+              <label for="expense-amount" class="visually-hidden">Importe del gasto en euros</label>
+              <span class="input-symbol" aria-hidden="true">€</span>
+              <input id="expense-amount" type="number" inputmode="decimal" [(ngModel)]="expenseAmount" placeholder="0.00" step="0.01" min="0">
             </div>
-            <button class="btn-primary" (click)="onAddExpense()" [disabled]="!expenseAmount || expenseAmount <= 0">
+            <button type="button" class="btn-primary" (click)="onAddExpense()" [disabled]="!expenseAmount || expenseAmount <= 0">
               Descontar
             </button>
           </div>
@@ -88,21 +99,23 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 
         <section class="history">
           <div class="history-header">
-            <h3>Historial de Movimientos</h3>
-            <span class="badge">{{ c.expenses.length }}</span>
+            <h2>Historial de movimientos</h2>
+            <span class="badge">{{ c.expenses.length }}<span class="visually-hidden"> movimientos</span></span>
           </div>
-          
+
           <div class="history-list">
             @for (expense of c.expenses; track expense.id) {
               <div class="history-item">
                 <div class="item-left">
-                  <div class="icon-minus">−</div>
+                  <div class="icon-minus" aria-hidden="true">−</div>
                   <div class="item-info">
                     <span class="item-amount">{{ expense.amount | currency:'EUR' }}</span>
                     <span class="item-date">{{ expense.date | date:'short' }}</span>
                   </div>
                 </div>
-                <button class="remove-btn" (click)="onRemoveExpense(expense.id)">
+                <button type="button" class="remove-btn"
+                  [attr.aria-label]="'Eliminar gasto de ' + (expense.amount | currency:'EUR')"
+                  (click)="onRemoveExpense(expense.id)">
                   Eliminar
                 </button>
               </div>
@@ -127,9 +140,9 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .back-link { display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: color 0.2s; }
     .back-link:hover { color: var(--text); }
     .share-link { background: none; border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); color: var(--text); font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
-    .share-link:hover { background: var(--bg-hover); }
+    .share-link:hover { background: var(--section-bg); }
     .share-link:disabled { opacity: 0.5; cursor: not-allowed; }
-    .delete-link { background: none; border: none; color: #FF3B30; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
+    .delete-link { background: none; border: none; color: var(--danger); font-weight: 600; cursor: pointer; font-size: 0.95rem; }
     
     .visual-card {
       position: relative;
@@ -148,47 +161,47 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .card-glass {
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%);
       pointer-events: none;
     }
     
     .card-header { display: flex; justify-content: space-between; align-items: center; }
-    .chip { background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: var(--radius-xs); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+    .chip { background: rgba(0,0,0,0.2); padding: 0.4rem 0.8rem; border-radius: var(--radius-xs); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
     
     .logo { display: flex; }
     .circle { width: 30px; height: 30px; border-radius: var(--radius-round); background: rgba(255,255,255,0.3); }
     .circle:last-child { margin-left: -15px; background: rgba(255,255,255,0.2); }
     
     .card-name { font-size: 1.8rem; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
-    .card-desc { font-size: 1rem; opacity: 0.8; margin: 0.25rem 0 0; }
+    .card-desc { font-size: 1rem; margin: 0.25rem 0 0; }
     
-    .balance-display .label { font-size: 0.8rem; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.05em; }
+    .balance-display .label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
     .amount-container { display: flex; align-items: baseline; gap: 0.4rem; margin-top: 0.2rem; }
     .symbol { font-size: 1.5rem; font-weight: 700; opacity: 0.8; }
     .amount { font-size: 3rem; font-weight: 800; line-height: 1; }
     .amount.animating { transform: scale(1.05); color: #fff; }
     
     .color-picker { background: var(--section-bg); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border); margin-bottom: 2.5rem; }
-    .color-picker h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .color-picker h2 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text); }
     .colors-list { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     .color-btn { width: 36px; height: 36px; border-radius: var(--radius-round); border: 2px solid transparent; cursor: pointer; transition: transform 0.2s, border-color 0.2s; padding: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     .color-btn:hover { transform: scale(1.1); }
     .color-btn.selected { border-color: var(--text); transform: scale(1.15); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
     
     .expense-form { background: var(--section-bg); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border); margin-bottom: 2.5rem; }
-    .expense-form h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .expense-form h2 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text); }
     
     .input-group { display: flex; gap: 1rem; }
     .input-wrapper { flex: 1; position: relative; }
     .input-symbol { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-weight: 600; }
     .input-wrapper input { width: 100%; padding: 0.8rem 1rem 0.8rem 2.2rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border); font-size: 1.1rem; font-weight: 600; background: var(--input-bg); color: var(--text); }
     
-    .btn-primary { background: var(--primary); color: white; border: none; padding: 0 1.5rem; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: var(--on-primary); border: none; padding: 0 1.5rem; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; transition: all 0.2s; }
     .btn-primary:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     
     .history-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
-    .history-header h3 { margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); }
+    .history-header h2 { margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); }
     .badge { background: var(--border); padding: 0.2rem 0.6rem; border-radius: var(--radius-lg); font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
     
     .history-list { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -199,14 +212,14 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
     .history-item:hover { background: var(--border); }
     
     .item-left { display: flex; align-items: center; gap: 1rem; }
-    .icon-minus { width: 32px; height: 32px; border-radius: var(--radius-round); background: #FF3B301A; color: #FF3B30; display: grid; place-items: center; font-weight: 800; }
+    .icon-minus { width: 32px; height: 32px; border-radius: var(--radius-round); background: var(--danger-soft); color: var(--danger); display: grid; place-items: center; font-weight: 800; }
     
     .item-info { display: flex; flex-direction: column; }
     .item-amount { font-weight: 700; color: var(--text); font-size: 1.05rem; }
     .item-date { font-size: 0.8rem; color: var(--text-secondary); }
     
     .remove-btn { background: none; border: none; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: color 0.2s; }
-    .remove-btn:hover { color: #FF3B30; }
+    .remove-btn:hover { color: var(--danger); }
     
     .empty-history { text-align: center; color: var(--text-secondary); padding: 2rem; font-style: italic; }
     
@@ -233,21 +246,9 @@ export class GiftCardDetailComponent {
   isAnimating = signal(false);
   private animationInterval: any;
 
-  // Aesthetic choices
-  availableColors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
+  readonly availableColors = CARD_COLORS;
 
-  cardColor = computed(() => {
-    const card = this.card();
-    if (card?.color) return card.color;
-    
-    const name = card?.name || '';
-    const colors = this.availableColors;
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  });
+  cardColor = computed(() => resolveCardColor(this.card()));
 
   // Share state
   isSharing = signal(false);
@@ -311,10 +312,36 @@ export class GiftCardDetailComponent {
     }
   }
 
-  onDeleteCard() {
-    if (confirm('¿Estás seguro de que quieres eliminar esta tarjeta por completo?')) {
-      this.giftCardService.deleteCard(this.cardId()!);
+  async onDeleteCard() {
+    const id = this.cardId();
+    if (!id) return;
+    const message = this.card()?.isShared
+      ? '¿Eliminar esta tarjeta por completo? También dejará de estar compartida y su enlace dejará de funcionar.'
+      : '¿Estás seguro de que quieres eliminar esta tarjeta por completo?';
+    if (!confirm(message)) return;
+
+    try {
+      await this.giftCardService.deleteCard(id);
       this.router.navigate(['/']);
+    } catch (e) {
+      logError('Failed to delete card', e);
+      alert('No se pudo eliminar la copia compartida. Inténtalo de nuevo.');
+    }
+  }
+
+  async onUnshare() {
+    const id = this.cardId();
+    if (!id || this.isSharing()) return;
+    if (!confirm('¿Dejar de compartir esta tarjeta? El enlace dejará de funcionar; la tarjeta seguirá en este dispositivo.')) return;
+
+    this.isSharing.set(true);
+    try {
+      await this.giftCardService.unshareCard(id);
+    } catch (e) {
+      logError('Failed to unshare card', e);
+      alert('No se pudo dejar de compartir la tarjeta. Inténtalo de nuevo.');
+    } finally {
+      this.isSharing.set(false);
     }
   }
 
@@ -325,7 +352,7 @@ export class GiftCardDetailComponent {
       await this.giftCardService.shareCard(this.cardId()!);
       this.copyShareLink();
     } catch (e) {
-      console.error('Error compartiendo tarjeta:', e);
+      logError('Failed to share card', e);
       alert('Hubo un error al compartir la tarjeta. Inténtalo de nuevo.');
     } finally {
       this.isSharing.set(false);
@@ -340,8 +367,7 @@ export class GiftCardDetailComponent {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
     }).catch(err => {
-      console.error('No se pudo copiar el enlace: ', err);
-      // Fallback
+      logError('Failed to copy share link', err);
       prompt('Copia este enlace para compartir:', url);
     });
   }

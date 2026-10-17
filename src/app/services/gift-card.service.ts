@@ -1,6 +1,9 @@
 import { Injectable, signal, effect, computed, inject } from '@angular/core';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { GiftCard, Expense } from '../models/gift-card.model';
 import { SupabaseService } from './supabase.service';
+import { generateId } from './id';
+import { logError } from './logger';
 
 @Injectable({
   providedIn: 'root'
@@ -8,7 +11,8 @@ import { SupabaseService } from './supabase.service';
 export class GiftCardService {
   private readonly STORAGE_KEY = 'gift_cards_data';
   private supabase = inject(SupabaseService);
-  
+  private channels = new Map<string, RealtimeChannel>();
+
   // State
   private readonly _cards = signal<GiftCard[]>(this.loadFromStorage());
 
@@ -21,7 +25,7 @@ export class GiftCardService {
       try {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this._cards()));
       } catch (err) {
-        console.error('Error saving to localStorage', err);
+        logError('Error saving to localStorage', err);
       }
     });
 
@@ -36,10 +40,26 @@ export class GiftCardService {
           this.claimLegacySharedCard(card.id);
         }
         this.syncSharedCard(card.id);
-        this.supabase.subscribeToCardUpdates(card.id, () => {
-          this.syncSharedCard(card.id);
-        });
+        this.subscribe(card.id);
       }
+    }
+  }
+
+  private subscribe(id: string) {
+    if (this.channels.has(id)) return;
+    this.channels.set(
+      id,
+      this.supabase.subscribeToCardUpdates(id, () => {
+        this.syncSharedCard(id);
+      }),
+    );
+  }
+
+  private unsubscribe(id: string) {
+    const channel = this.channels.get(id);
+    if (channel) {
+      this.supabase.unsubscribe(channel);
+      this.channels.delete(id);
     }
   }
 
@@ -50,14 +70,12 @@ export class GiftCardService {
     try {
       const claimed = await this.supabase.claimSharedCard(id, editToken);
       if (!claimed) {
-        console.error('Shared card could not be claimed; remote edits are disabled', id);
+        logError('Shared card could not be claimed; remote edits are disabled', id);
         return;
       }
-      this._cards.update(cards =>
-        cards.map(card => (card.id === id ? { ...card, editToken } : card)),
-      );
+      this.patchCard(id, { editToken });
     } catch (e) {
-      console.error('Failed to claim shared card', e);
+      logError('Failed to claim shared card', e);
     }
   }
 
@@ -70,23 +88,25 @@ export class GiftCardService {
   }
 
   private async syncSharedCard(id: string) {
-    const remoteCard = await this.supabase.getSharedCard(id);
-    if (remoteCard) {
-      this._cards.update(cards => {
-        const index = cards.findIndex(c => c.id === id);
-        if (index === -1) return cards;
-        
-        const updated = [...cards];
-        updated[index] = {
-          ...updated[index],
+    try {
+      const remoteCard = await this.supabase.getSharedCard(id);
+      if (remoteCard) {
+        this.patchCard(id, {
           balance: remoteCard.balance,
           expenses: remoteCard.expenses,
           color: remoteCard.color,
-          isShared: true
-        };
-        return updated;
-      });
+          isShared: true,
+        });
+      }
+    } catch (e) {
+      logError('Failed to sync shared card', e);
     }
+  }
+
+  private patchCard(id: string, changes: Partial<GiftCard>) {
+    this._cards.update(cards =>
+      cards.map(card => (card.id === id ? { ...card, ...changes } : card)),
+    );
   }
 
   async updateCardColor(cardId: string, color: string) {
@@ -109,7 +129,7 @@ export class GiftCardService {
       try {
         await this.supabase.updateCardColor(cardId, this.requireEditToken(editToken), color);
       } catch (e) {
-        console.error('Failed to sync color to Supabase', e);
+        logError('Failed to sync color to Supabase', e);
       }
     }
   }
@@ -122,20 +142,20 @@ export class GiftCardService {
 
     // Upload to Supabase first
     const balance = await this.supabase.shareCard(card, editToken);
-    const cardToShare: GiftCard = { ...card, balance, isShared: true, editToken };
-
-    // Mark as shared locally
-    this._cards.update(cards => {
-      const updated = [...cards];
-      const index = updated.findIndex(c => c.id === id);
-      updated[index] = cardToShare;
-      return updated;
-    });
+    this.patchCard(id, { balance, isShared: true, editToken });
 
     // Subscribe to future updates
-    this.supabase.subscribeToCardUpdates(id, () => {
-      this.syncSharedCard(id);
-    });
+    this.subscribe(id);
+  }
+
+  // Removes the remote copy so the share link stops working; the card stays local.
+  async unshareCard(id: string) {
+    const card = this._cards().find(c => c.id === id);
+    if (!card?.isShared) return;
+
+    await this.supabase.deleteSharedCard(id, this.requireEditToken(card.editToken));
+    this.unsubscribe(id);
+    this.patchCard(id, { isShared: false, editToken: undefined });
   }
 
   getCardById(id: string) {
@@ -143,12 +163,8 @@ export class GiftCardService {
   }
 
   addCard(name: string, description: string, initialAmount: number, color?: string) {
-    const id = typeof crypto !== 'undefined' && crypto.randomUUID 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2) + Date.now().toString(36);
-
     const newCard: GiftCard = {
-      id,
+      id: generateId(),
       name,
       description,
       initialAmount,
@@ -164,24 +180,26 @@ export class GiftCardService {
     });
   }
 
-  deleteCard(id: string) {
+  // A shared card owned by this device is deleted remotely first, so a local
+  // delete never leaves a public copy behind. Throws if the remote delete fails.
+  async deleteCard(id: string) {
+    const card = this._cards().find(c => c.id === id);
+    if (card?.isShared && card.editToken) {
+      await this.supabase.deleteSharedCard(id, card.editToken);
+    }
+    this.unsubscribe(id);
     this._cards.update(cards => Array.isArray(cards) ? cards.filter(c => c.id !== id) : []);
   }
 
   async addExpense(cardId: string, amount: number) {
-    const id = typeof crypto !== 'undefined' && crypto.randomUUID 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2) + Date.now().toString(36);
-      
     const expense: Expense = {
-      id,
+      id: generateId(),
       amount,
       date: Date.now()
     };
 
     let isShared = false;
     let editToken: string | undefined;
-    let newBalance = 0;
 
     this._cards.update(cards => {
       if (!Array.isArray(cards)) return [];
@@ -189,10 +207,9 @@ export class GiftCardService {
         if (card.id === cardId) {
           isShared = !!card.isShared;
           editToken = card.editToken;
-          newBalance = card.balance - amount;
           return {
             ...card,
-            balance: newBalance,
+            balance: card.balance - amount,
             expenses: [expense, ...card.expenses]
           };
         }
@@ -202,9 +219,12 @@ export class GiftCardService {
 
     if (isShared) {
       try {
-        await this.supabase.addExpense(cardId, this.requireEditToken(editToken), expense);
+        // The server recalculates the balance; it wins over the optimistic one.
+        const balance = await this.supabase.addExpense(cardId, this.requireEditToken(editToken), expense);
+        this.patchCard(cardId, { balance });
       } catch (e) {
-        console.error('Failed to sync expense to Supabase', e);
+        logError('Failed to sync expense to Supabase', e);
+        await this.syncSharedCard(cardId);
       }
     }
   }
@@ -212,7 +232,6 @@ export class GiftCardService {
   async deleteExpense(cardId: string, expenseId: string) {
     let isShared = false;
     let editToken: string | undefined;
-    let newBalance = 0;
 
     this._cards.update(cards => {
       if (!Array.isArray(cards)) return [];
@@ -220,14 +239,13 @@ export class GiftCardService {
         if (card.id === cardId) {
           const expenseToDelete = card.expenses.find(e => e.id === expenseId);
           if (!expenseToDelete) return card;
-          
+
           isShared = !!card.isShared;
           editToken = card.editToken;
-          newBalance = card.balance + expenseToDelete.amount;
-          
+
           return {
             ...card,
-            balance: newBalance,
+            balance: card.balance + expenseToDelete.amount,
             expenses: card.expenses.filter(e => e.id !== expenseId)
           };
         }
@@ -237,9 +255,11 @@ export class GiftCardService {
 
     if (isShared) {
       try {
-        await this.supabase.removeExpense(cardId, this.requireEditToken(editToken), expenseId);
+        const balance = await this.supabase.removeExpense(cardId, this.requireEditToken(editToken), expenseId);
+        this.patchCard(cardId, { balance });
       } catch (e) {
-        console.error('Failed to remove expense from Supabase', e);
+        logError('Failed to remove expense from Supabase', e);
+        await this.syncSharedCard(cardId);
       }
     }
   }
@@ -258,7 +278,7 @@ export class GiftCardService {
       const parsed = JSON.parse(data);
       return Array.isArray(parsed) ? parsed : [];
     } catch (err) {
-      console.error('Error loading from localStorage', err);
+      logError('Error loading from localStorage', err);
       return [];
     }
   }

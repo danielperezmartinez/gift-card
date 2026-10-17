@@ -1,0 +1,56 @@
+name: Seguridad
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  rls:
+    name: Tests de base de datos (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - run: supabase db start
+      - run: supabase test db
+
+  a11y:
+    name: Accesibilidad (AXE) y secretos en el bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Sin claves secretas en el bundle
+        run: '! grep -rIE "sb_secret_|SERVICE_ROLE" dist/gift-card'
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run test:a11y
+
+  fugas:
+    name: Fugas (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (historial, mensajes, rama y PR)
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          # El texto del PR va por variable de entorno, nunca interpolado en el script.
+          PR_TEXTO: ${{ github.event.pull_request.title }} ${{ github.event.pull_request.body }}
+          RAMA: ${{ github.head_ref || github.ref_name }}
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks git --redact --no-banner --config .gitleaks.toml
+          { git log --format=%B; printf '%s\n%s\n' "$RAMA" "$PR_TEXTO"; } | ./gitleaks stdin --redact --no-banner --config .gitleaks.toml

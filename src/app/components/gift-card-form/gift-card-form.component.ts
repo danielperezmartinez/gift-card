@@ -1,19 +1,23 @@
-import { Component, output, inject, ChangeDetectionStrategy, signal } from '@angular/core';
+import { Component, output, inject, ChangeDetectionStrategy, ElementRef, afterNextRender, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { CARD_COLORS } from '../../models/card-colors';
 
 @Component({
   selector: 'app-gift-card-form',
   imports: [CommonModule, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown.escape)': 'close.emit()',
+  },
   template: `
     <div class="modal-overlay" (click)="close.emit()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <h2>Nueva Tarjeta</h2>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="new-card-title" (click)="$event.stopPropagation()">
+        <h2 id="new-card-title">Nueva tarjeta</h2>
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
           <div class="form-group">
             <label for="name">Nombre de la tarjeta</label>
-            <input id="name" type="text" formControlName="name" maxlength="100" placeholder="Ej. Amazon, Netflix...">
+            <input #nameInput id="name" type="text" formControlName="name" maxlength="100" placeholder="Ej. Amazon, Netflix...">
           </div>
           
           <div class="form-group">
@@ -27,24 +31,27 @@ import { CommonModule } from '@angular/common';
           </div>
 
           <div class="form-group">
-            <label>Color de la tarjeta (opcional)</label>
-            <div class="color-selector">
-              <button 
-                type="button" 
-                class="color-option auto" 
+            <span id="color-label" class="group-label">Color de la tarjeta (opcional)</span>
+            <div class="color-selector" role="group" aria-labelledby="color-label">
+              <button
+                type="button"
+                class="color-option auto"
                 [class.selected]="!form.get('color')?.value"
+                [attr.aria-pressed]="!form.get('color')?.value"
+                aria-label="Automático"
                 (click)="selectColor(null)"
-                title="Automático"
               >
-                <span>A</span>
+                <span aria-hidden="true">A</span>
               </button>
-              @for (color of availableColors; track color) {
-                <button 
-                  type="button" 
-                  class="color-option" 
-                  [class.selected]="form.get('color')?.value === color"
-                  [style.background-color]="color"
-                  (click)="selectColor(color)"
+              @for (color of availableColors; track color.value) {
+                <button
+                  type="button"
+                  class="color-option"
+                  [class.selected]="form.get('color')?.value === color.value"
+                  [attr.aria-pressed]="form.get('color')?.value === color.value"
+                  [attr.aria-label]="color.label"
+                  [style.background-color]="color.value"
+                  (click)="selectColor(color.value)"
                 ></button>
               }
             </div>
@@ -91,7 +98,7 @@ import { CommonModule } from '@angular/common';
       gap: 0.5rem;
     }
     
-    label { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); }
+    label, .group-label { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); }
     
     input, textarea {
       padding: 0.8rem 1rem;
@@ -104,9 +111,9 @@ import { CommonModule } from '@angular/common';
     }
     
     input:focus, textarea:focus {
-      outline: none;
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 1px;
       border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
     }
 
     .color-selector {
@@ -163,11 +170,11 @@ import { CommonModule } from '@angular/common';
     
     .btn-primary {
       background: var(--primary);
-      color: white;
+      color: var(--on-primary);
     }
-    
+
     .btn-primary:hover:not(:disabled) {
-      background: #0056b3;
+      opacity: 0.9;
       transform: translateY(-2px);
     }
     
@@ -189,11 +196,16 @@ import { CommonModule } from '@angular/common';
 })
 export class GiftCardFormComponent {
   private fb = inject(FormBuilder);
-  
+  private nameInput = viewChild.required<ElementRef<HTMLInputElement>>('nameInput');
+
   close = output<void>();
   create = output<{ name: string, description: string, amount: number, color?: string }>();
 
-  availableColors = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759'];
+  readonly availableColors = CARD_COLORS;
+
+  constructor() {
+    afterNextRender(() => this.nameInput().nativeElement.focus());
+  }
 
   form = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],

@@ -4,7 +4,7 @@ Estado: Aceptada
 Ámbito: Tema
 Resumen: Las transiciones CSS de tema se acotan a un scope específico y color-scheme se sincroniza en index.html antes de que Angular arranque, para eliminar el parpadeo de tema (FOUC) al cargar la página.
 Fecha: 2026-04-25
-Última modificación: 2026-04-25T12:40:28+02:00
+Última modificación: 2026-10-17T10:30:00+02:00
 ---
 
 # Eliminar flash de tema al cargar
@@ -32,6 +32,10 @@ claro y oscuro, porque las transiciones CSS globales se aplicaban antes de que
   detalle en el commit `7d3e949`).
 - Cualquier cambio futuro en cómo se aplica el tema debe preservar que el
   `color-scheme` inicial se resuelva antes del primer render.
+- Desde el 2026-10-17 la sincronización inicial vive en `public/theme-init.js`,
+  cargado de forma síncrona desde `index.html` (sin script en línea), para que
+  la Content-Security-Policy pueda limitarse a `script-src 'self'`. Por lo
+  mismo, el build de producción no inlinea CSS crítico (`inlineCritical: false`).
 
 ## Referencia
 

@@ -1,0 +1,20 @@
+.legal {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  color: var(--text);
+}
+
+.legal h1 { font-size: 2rem; font-weight: 800; margin: 1.5rem 0 0.25rem; }
+.legal h2 { font-size: 1.2rem; font-weight: 700; margin: 2rem 0 0.5rem; }
+.legal h3 { font-size: 1rem; font-weight: 700; margin: 1.25rem 0 0.25rem; }
+.legal p, .legal li { line-height: 1.6; }
+.legal ul { padding-left: 1.25rem; }
+.legal a { color: var(--primary); font-weight: 600; }
+.legal .updated { color: var(--text-secondary); font-size: 0.9rem; margin: 0; }
+
+.back-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 600;
+}

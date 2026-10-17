@@ -117,6 +117,15 @@ export class SupabaseService {
     if (error) throw error;
   }
 
+  async deleteSharedCard(cardId: string, editToken: string): Promise<void> {
+    const { error } = await this.supabase.rpc('delete_shared_card', {
+      p_card_id: cardId,
+      p_edit_token: editToken,
+    });
+
+    if (error) throw error;
+  }
+
   // The database broadcasts an empty "changed" event; subscribers re-fetch through
   // get_shared_card so no card data travels over the public channel.
   subscribeToCardUpdates(cardId: string, callback: () => void): RealtimeChannel {
