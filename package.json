@@ -4,6 +4,7 @@
   "packageManager": "pnpm@10.33.2",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "prepare": "git config core.hooksPath .githooks",
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
