@@ -100,7 +100,7 @@ verdad del contrato detallado.
 
 ### Seguridad, coste y cumplimiento
 
-_Versión del sistema: 2._
+_Versión del sistema: 3._
 
 Carpeta [[Seguridad/Seguridad.base|Seguridad/]]: excepciones justificadas a estas
 reglas, la [[Seguridad/Checklist de lanzamiento|checklist de lanzamiento]] y
@@ -258,9 +258,7 @@ lo que se haga con MCP, CLI o panel.
     `pre-push`), activados con `pnpm install` (script `prepare`).
   - Todo ello, más la búsqueda de claves secretas en `dist/` y el job `fugas`
     (gitleaks sobre historial, mensajes, rama y PR), en
-    `.github/workflows/seguridad.yml`. Sus jobs son obligatorios para
-    fusionar en `master` (flujo en la regla 3 de
-    [[#Reglas fundamentales del proyecto]]).
+    `.github/workflows/seguridad.yml`.
 - **Una tarea que toque backend o UI no pasa a `Hecha`** hasta que esas
   comprobaciones estén en verde, y su sección "Verificación" lo deja escrito (qué
   se ejecutó y dónde). Si el cambio añade tablas, políticas, funciones o rutas,
@@ -273,6 +271,72 @@ lo que se haga con MCP, CLI o panel.
   quita también el comentario `excepcion:` del objeto. Una excepción vencida
   (`Revisar antes de` en el pasado) se revisa antes de cualquier otro cambio
   sobre ese objeto.
+- Sus jobs son checks obligatorios para integrar en la rama principal; el flujo
+  de publicación está en la sección [[#Publicación]] y no se repite aquí.
+
+### Publicación
+
+_Versión del sistema: 1._
+
+Esta es la única regla de publicación del proyecto (política común de las webs
+del usuario, decidida el 2026-10-17); las demás secciones la enlazan en vez de
+repetirla. La rama principal es `master`.
+
+| Cambio | Cómo se publica | Versión | Despliegue |
+| --- | --- | --- | --- |
+| **Código**: cualquier archivo fuera de `docs/` | Rama corta y pull request contra `master`, integrada con *squash* | Sube en la propia PR | Production en Vercel al integrar en `master` |
+| **Solo bóveda**: todo dentro de `docs/` | Commit y push directo a `master` | No cambia | Ninguno (Vercel omite la build) |
+
+- Un commit o una PR que mezcle bóveda y código cuenta como **código**.
+- **Nunca se hace push directo de código a `master`**, aunque GitHub lo permita
+  a administradores: `enforce_admins` está desactivado solo para que la bóveda
+  pueda publicarse con push directo desde la cuenta compartida. La guarda de
+  `.githooks/pre-push` rechaza en local un push a `master` que toque algo fuera
+  de `docs/`; no se salta (`--no-verify`) sin permiso explícito del usuario.
+- **Protección de `master`:** PR obligatoria con 0 aprobaciones; checks
+  obligatorios «Tests de base de datos (pgTAP)», «Accesibilidad (AXE) y
+  secretos en el bundle» y «Fugas (gitleaks)» en modo *strict* (la PR, al día
+  con `master`); historial lineal; sin force push ni borrado. No se exige
+  resolver las conversaciones.
+- **Integración: solo *squash*.** Merge commit y rebase están desactivados en
+  el repo, y la rama se borra al integrar (`delete_branch_on_merge`).
+- **Cada PR de código sube la versión** (`version` de `package.json`, SemVer).
+  El agente propone el incremento según los commits (Conventional Commits) y el
+  usuario lo aprueba antes de abrir la PR; *major*, siempre con autorización
+  expresa. El CI (`scripts/comprobar-version.sh`, en el job de AXE) falla si no
+  supera la de `master`.
+- **Dependabot:** sus PR son código. El agente añade a su rama la subida *patch*
+  y la integra con autorización, como cualquier otra. Con *strict*, cada
+  integración deja atrás las demás PR abiertas: se actualizan con `master`
+  antes de integrarlas.
+- **Quién integra:** el agente, solo con autorización explícita del usuario
+  para esa PR; si no la tiene, se detiene con la PR abierta. Auto-merge
+  desactivado en el repo.
+- **Publicar código** significa: rama corta (`feat/*`, `fix/*`, `chore/*`,
+  `docs/*`), PR con `gh` contra `master`, esperar los checks, integrarla solo
+  con autorización y verificar el despliegue.
+- **Publicar la bóveda** significa: commit y push directo a `master`, sin PR,
+  sin subir la versión y sin despliegue. `vercel.json` define `ignoreCommand`
+  para que Vercel omita la build; solo mira el último commit, así que una
+  preview cuyo último commit es solo de `docs/` tampoco se construye.
+- **Verificar el despliegue:** al integrar, Vercel despliega; se localiza el
+  despliegue del commit exacto y se comprueba que queda `READY` y que la web
+  funciona. Si queda en `ERROR`, el agente se detiene e informa al usuario, sin
+  reintentar, redesplegar ni hacer rollback por su cuenta; la corrección es una
+  PR nueva con su versión.
+- **CI:** el job «Cambios» de `.github/workflows/seguridad.yml` detecta si el
+  cambio toca algo fuera de `docs/`; si no, los jobs de pgTAP y AXE se omiten
+  (un check omitido cuenta como superado). El de fugas corre siempre.
+- **Correo:** los commits nuevos usan el correo `noreply` de GitHub, nunca uno
+  personal. El historial ya publicado no se reescribe.
+- **Migraciones del Supabase compartido** (`devappsdpm-db`, con nocendland y
+  outify): se aplican aparte, con autorización expresa, en remoto **antes** de
+  integrar el frontend que las necesita. El fichero de `supabase/migrations/`
+  lleva la misma versión que registra el ledger remoto (`list_migrations`); si
+  la herramienta asigna otra, se renombra el fichero.
+- Una tarea de código no pasa a `Hecha` hasta que su PR está integrada y el
+  despliegue verificado; su sección "Verificación" anota la PR, el commit y el
+  estado del despliegue. Si la PR espera autorización, la tarea sigue `En curso`.
 
 ## Reglas fundamentales del proyecto
 
@@ -312,39 +376,10 @@ lo que se haga con MCP, CLI o panel.
   tipo sea incierto. Preferir inferencia de tipos cuando sea evidente.
 - **Vitest** como test runner (`ng test`). **Prettier** para formateo.
 
-### 3. El código se publica por pull request y todo deploy debe verificarse
+### 3. Publicación, build y tipos
 
-Esta regla es la fuente única del flujo de publicación; el resto de la bóveda
-solo enlaza aquí. La rama principal es `master`.
-
-| Cambio | Cómo se publica | Versión | Despliegue |
-| --- | --- | --- | --- |
-| **Código**: cualquier archivo fuera de `docs/` | Rama corta y PR contra `master`, fusionada con *squash* | Sube en la propia PR | Vercel despliega al fusionar |
-| **Solo bóveda**: todo dentro de `docs/` | Commit y push directo a `master` | No cambia | No hay (Vercel omite el build) |
-
-- Un commit que mezcle bóveda y código cuenta como **código**.
-- **Nunca push directo a `master` de código**, aunque GitHub lo permita a
-  administradores. `master` exige los checks de
-  `.github/workflows/seguridad.yml` (pgTAP, AXE y fugas) y que la rama esté al
-  día para fusionar; un push directo se despliega sin esperar al CI, por eso el
-  código va por PR.
-- **Versión** (SemVer en `package.json`): cada PR de código la sube; *patch*
-  para correcciones, configuración y mantenimiento, *minor* para funcionalidad
-  nueva visible. No se fusiona si no supera la de `master`.
-- **Desplegar** = rama propia, PR con `gh`, esperar los checks en verde,
-  fusionar si el usuario lo autorizó (si no, parar con la PR abierta) y verificar
-  que el despliegue de producción queda `READY` en Vercel y funciona. Las
-  correcciones tras un despliegue en `ERROR` son PR nuevas con su versión.
-- **Publicar la bóveda** = commit y push directo a `master` si el cambio solo
-  toca `docs/`.
-- **Cambios en el Supabase compartido** (`devappsdpm-db`): van aparte, con
-  autorización expresa, y se aplican en remoto **antes** de fusionar el frontend
-  que los necesita. El archivo de `supabase/migrations/` lleva la misma versión
-  que registra el ledger remoto (`list_migrations`); si la herramienta asigna
-  otra, se renombra el archivo.
-- Build de producción con `ng build` → `dist/gift-card/`. `vercel.json` define
-  `ignoreCommand` para que Vercel no construya cuando un commit solo cambia
-  `docs/`.
+- Cómo se publica y se despliega: [[#Publicación]].
+- Build de producción con `ng build` → `dist/gift-card/`.
 - Si se modifica el schema de Supabase, regenerar tipos con
   `supabase gen types typescript --project-id <id> > src/app/models/database.ts`.
 

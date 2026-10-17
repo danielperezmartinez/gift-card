@@ -1,5 +1,7 @@
 name: Seguridad
 
+# Qué es obligatorio para integrar y cómo se publica: docs/README.md, sección "Publicación".
+
 on:
   pull_request:
   push:
@@ -8,9 +10,36 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  # En master no se cancela: un push de la bóveda no debe interrumpir el CI de una integración de código.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  cambios:
+    name: Cambios
+    runs-on: ubuntu-latest
+    outputs:
+      codigo: ${{ steps.diff.outputs.codigo }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        # Si el diff no se puede calcular, se trata como código.
+        run: |
+          if git diff --quiet "$BASE_SHA" HEAD -- . ':(exclude)docs' 2>/dev/null; then
+            echo "codigo=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "codigo=true" >> "$GITHUB_OUTPUT"
+          fi
+
   rls:
     name: Tests de base de datos (pgTAP)
+    needs: cambios
+    if: needs.cambios.outputs.codigo == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,14 +51,22 @@ jobs:
 
   a11y:
     name: Accesibilidad (AXE) y secretos en el bundle
+    needs: cambios
+    if: needs.cambios.outputs.codigo == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
+      # Va en este job, ya obligatorio, para no añadir otro check a la protección de master.
+      - name: La versión supera la de master
+        if: github.event_name == 'pull_request'
+        run: sh scripts/comprobar-version.sh "${{ github.event.pull_request.base.sha }}"
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
       - name: Sin claves secretas en el bundle

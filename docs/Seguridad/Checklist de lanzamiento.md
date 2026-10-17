@@ -4,7 +4,7 @@ Tipo: Checklist
 Estado: Pendiente
 Resumen: Estado de la configuración fuera del código (gasto, Auth, firewall, secretos, plan, GitHub y legal) que ningún test del repo comprueba. Aún sin revisar en los paneles.
 Última revisión:
-Última modificación: 2026-10-17T16:30:00+02:00
+Última modificación: 2026-10-17T16:23:33+02:00
 ---
 
 # Checklist de lanzamiento
@@ -52,13 +52,8 @@ revisar las tres checklists juntas.
       conocidos) (2026-10-17).
 - [x] Private vulnerability reporting activado, si el repo es público
       (2026-10-17).
-- [x] Protección de la rama principal con los jobs de seguridad como
-      obligatorios: «Tests de base de datos (pgTAP)», «Accesibilidad (AXE) y
-      secretos en el bundle» y «Fugas (gitleaks)», con la rama al día
-      (`strict`). Sin force push ni borrado de `master`. `enforce_admins`
-      desactivado a propósito: permite el push directo de cambios de solo
-      `docs/`; el código va siempre por PR (regla 3 del [[README]])
-      (2026-10-17).
+- [x] Protección de `master` y ajustes del repo según
+      [[README#Publicación]]: aplicados y releídos el 2026-10-17.
 - [x] Hooks activos en cada clon de trabajo (`git config core.hooksPath`
       apunta a `.githooks`) y gitleaks instalado; fichero de patrones
       personales creado fuera del repo. Hecho en el clon principal el
