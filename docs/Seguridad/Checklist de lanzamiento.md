@@ -4,7 +4,7 @@ Tipo: Checklist
 Estado: Pendiente
 Resumen: Estado de la configuración fuera del código (gasto, Auth, firewall, secretos, plan, GitHub y legal) que ningún test del repo comprueba. Aún sin revisar en los paneles.
 Última revisión:
-Última modificación: 2026-10-17T15:00:00+02:00
+Última modificación: 2026-10-17T15:30:00+02:00
 ---
 
 # Checklist de lanzamiento
@@ -47,18 +47,21 @@ revisar las tres checklists juntas.
 
 - [x] Visibilidad del repo (público o privado) conocida y coherente con las
       reglas de "Repositorio y publicación". Público (comprobado el 2026-10-17).
-- [ ] Secret scanning activado.
-- [ ] Push protection activado (bloquea en el servidor los pushes con secretos
-      conocidos).
-- [ ] Private vulnerability reporting activado, si el repo es público.
-- [ ] Protección de la rama principal con los jobs de seguridad (`rls`, `a11y`
-      y `fugas` de `.github/workflows/seguridad.yml`) como obligatorios, cuando
-      estén en verde.
-- [ ] Hooks activos en cada clon de trabajo (`git config core.hooksPath`
+- [x] Secret scanning activado (2026-10-17).
+- [x] Push protection activado (bloquea en el servidor los pushes con secretos
+      conocidos) (2026-10-17).
+- [x] Private vulnerability reporting activado, si el repo es público
+      (2026-10-17).
+- [x] Protección de la rama principal con los jobs de seguridad como
+      obligatorios: «Tests de base de datos (pgTAP)», «Accesibilidad (AXE) y
+      secretos en el bundle» y «Fugas (gitleaks)». Sin force push ni borrado de
+      `master`; el administrador puede saltársela en una emergencia
+      (`enforce_admins` desactivado) (2026-10-17).
+- [x] Hooks activos en cada clon de trabajo (`git config core.hooksPath`
       apunta a `.githooks`) y gitleaks instalado; fichero de patrones
       personales creado fuera del repo. Hecho en el clon principal el
       2026-10-17; repetir en cada clon nuevo (`pnpm install` lo activa).
-- [ ] Alertas de Dependabot activadas.
+- [x] Alertas de Dependabot activadas (2026-10-17).
 
 ## Legal y privacidad
 
@@ -73,6 +76,8 @@ revisar las tres checklists juntas.
 ## Accesibilidad
 
 - [ ] Revisión manual con teclado y lector de pantalla de los flujos principales.
+      Teclado revisado el 2026-10-17; lector de pantalla pendiente en
+      [[Revisar la app con lector de pantalla]].
 
 ## Revisiones
 
