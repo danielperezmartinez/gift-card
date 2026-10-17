@@ -5,7 +5,7 @@ Resumen: Se descartó cifrar localStorage (la clave viviría junto a los datos).
 Decisiones: []
 Bloqueada: []
 Fecha de creación: 2026-10-16T21:45:00+02:00
-Última modificación: 2026-10-17T10:30:00+02:00
+Última modificación: 2026-10-17T15:00:00+02:00
 ---
 
 # Proteger los datos guardados en localStorage
@@ -41,4 +41,7 @@ del usuario no protege frente a un XSS, que es la amenaza real.
   violaciones de CSP ni errores de consola en `/`, `/card/:id`, `/shared/:id`
   (con RPC simulada) y `/privacidad`, y el tema oscuro se aplica antes del
   arranque (2026-10-17).
-- Pendiente: comprobar las cabeceras en producción tras el despliegue.
+- Producción (2026-10-17, commit `21a747d`): CSP, `nosniff`,
+  `Referrer-Policy` y `Permissions-Policy` presentes en `/`, `/privacidad`,
+  `/aviso-legal` y `/theme-init.js`. Sin scripts en línea y sin violaciones de
+  CSP en el flujo completo de compartir.

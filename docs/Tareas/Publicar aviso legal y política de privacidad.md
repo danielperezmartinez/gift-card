@@ -1,11 +1,11 @@
 ---
 Nombre: Publicar aviso legal y política de privacidad
-Estado: En curso
-Resumen: Creadas /aviso-legal y /privacidad (titular Daniel Pérez Martínez, dlperezmartinez@gmail.com), enlazadas desde el pie de todas las páginas y cubiertas por AXE. Falta publicarlas con el despliegue y comprobarlas en producción.
+Estado: Hecha
+Resumen: Publicadas /aviso-legal y /privacidad (titular Daniel Pérez Martínez, dlperezmartinez@gmail.com), enlazadas desde el pie de todas las páginas, cubiertas por AXE y comprobadas en producción.
 Decisiones: []
 Bloqueada: []
 Fecha de creación: 2026-10-16T21:45:00+02:00
-Última modificación: 2026-10-17T10:30:00+02:00
+Última modificación: 2026-10-17T15:00:00+02:00
 ---
 
 # Publicar aviso legal y política de privacidad
@@ -29,5 +29,6 @@ privacidad" de [[README#Seguridad, coste y cumplimiento]].
 
 - AXE 14/14, incluidas las dos páginas (2026-10-17). Sin violaciones de CSP en
   `/privacidad`.
-- Pendiente: comprobar en producción y marcar el apartado legal de la
-  [[Seguridad/Checklist de lanzamiento|checklist de lanzamiento]].
+- Producción (2026-10-17, commit `21a747d`): `/aviso-legal` y `/privacidad`
+  responden 200 con la CSP y están enlazadas desde el pie. Apartado legal
+  marcado en la [[Seguridad/Checklist de lanzamiento|checklist de lanzamiento]].
