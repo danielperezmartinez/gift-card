@@ -1,11 +1,11 @@
 ---
 Nombre: Implantar el flujo de publicación por pull request
-Estado: En curso
-Resumen: El código se publica por PR contra master con los checks de seguridad obligatorios (strict) y la versión subida en la PR; los cambios de solo docs/ van por push directo y Vercel no los construye. Falta ver omitido en producción el primer push de solo docs/.
+Estado: Hecha
+Resumen: El código se publica por PR contra master con los checks de seguridad obligatorios (strict) y la versión subida en la PR; los cambios de solo docs/ van por push directo y Vercel no los construye. Comprobado en producción con un push de solo docs/.
 Decisiones: []
 Bloqueada: []
 Fecha de creación: 2026-10-17T16:45:00+02:00
-Última modificación: 2026-10-17T16:45:00+02:00
+Última modificación: 2026-10-17T17:00:00+02:00
 ---
 
 # Implantar el flujo de publicación por pull request
@@ -35,8 +35,8 @@ pasa a ser su fuente única.
 - `ignoreCommand` probado en local: un commit de solo `docs/` devuelve 0 y uno
   de código devuelve 1. En la PR, la preview del último commit (solo `docs/`)
   quedó omitida («Canceled by Ignored Build Step»).
-- Pendiente: que el push directo de esta nota a `master` quede omitido en
-  producción.
+- El push directo de esta nota a `master` (`36faa6c`) quedó omitido en
+  producción («Canceled by Ignored Build Step»); sigue sirviendo `edd4610`.
 
 ## Limitación conocida
 
