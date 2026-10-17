@@ -4,7 +4,7 @@ Tipo: Checklist
 Estado: Pendiente
 Resumen: Estado de la configuración fuera del código (gasto, Auth, firewall, secretos, plan, GitHub y legal) que ningún test del repo comprueba. Aún sin revisar en los paneles.
 Última revisión:
-Última modificación: 2026-10-17T14:40:00+02:00
+Última modificación: 2026-10-17T15:00:00+02:00
 ---
 
 # Checklist de lanzamiento
@@ -62,11 +62,13 @@ revisar las tres checklists juntas.
 
 ## Legal y privacidad
 
-- [ ] Aviso legal y política de privacidad publicados y enlazados.
-- [ ] Terceros que reciben datos (Supabase, Vercel) listados en la política,
-      con región de los datos.
-- [ ] Banner de cookies solo si hay cookies no técnicas, y funciona sin cargar
-      nada antes del consentimiento.
+- [x] Aviso legal y política de privacidad publicados y enlazados
+      (`/aviso-legal`, `/privacidad`, pie de todas las páginas; 2026-10-17).
+- [x] Terceros que reciben datos (Supabase, Vercel) listados en la política,
+      con región de los datos (Supabase `eu-central-1`; Vercel, EE. UU.).
+- [x] Banner de cookies solo si hay cookies no técnicas, y funciona sin cargar
+      nada antes del consentimiento. No hay cookies ni almacenamiento no
+      técnico: no hace falta banner.
 
 ## Accesibilidad
 

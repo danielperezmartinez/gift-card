@@ -5,7 +5,7 @@ Resumen: En tarjetas compartidas, el saldo optimista local se sustituye por el q
 Decisiones: []
 Bloqueada: []
 Fecha de creación: 2026-10-16T21:45:00+02:00
-Última modificación: 2026-10-17T10:30:00+02:00
+Última modificación: 2026-10-17T15:00:00+02:00
 ---
 
 # Usar el saldo calculado por el servidor
@@ -27,4 +27,6 @@ en local y descartaba ese valor.
 - El test de aislamiento comprueba que el saldo lo calcula el servidor
   (90 tras crear con un gasto de 10; 75 tras otro de 15). `supabase test db`
   29/29 y `ng test` 6/6 (2026-10-17).
-- Pendiente de comprobar en producción junto con el despliegue de la rama.
+- Producción (2026-10-17, commit `21a747d`): un gasto de 12,50 € sobre 50 €
+  deja 37,50 € calculados por el servidor, y el cambio llega en directo al
+  enlace compartido.
