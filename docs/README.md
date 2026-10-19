@@ -170,7 +170,8 @@ lo que se haga con MCP, CLI o panel.
   - Datos del entorno personal: nombres de host, de máquina o de dispositivo,
     usuarios del sistema operativo, IP (de red local, VPN o públicas), dominios y
     redes propios, rutas personales (`C:\Users\<nombre>`, `/home/<nombre>`,
-    unidades y carpetas propias) y correos personales.
+    unidades y carpetas propias) y correos personales que no sean públicos
+    (el de los commits lo es: ver «Correo» en [[#Publicación]]).
   - Vulnerabilidades sin corregir (ver "Vulnerabilidades y hallazgos
     sensibles").
 - En la documentación se usan **marcadores genéricos** (`<usuario>`,
@@ -327,8 +328,8 @@ repetirla. La rama principal es `master`.
 - **CI:** el job «Cambios» de `.github/workflows/seguridad.yml` detecta si el
   cambio toca algo fuera de `docs/`; si no, los jobs de pgTAP y AXE se omiten
   (un check omitido cuenta como superado). El de fugas corre siempre.
-- **Correo:** los commits nuevos usan el correo `noreply` de GitHub, nunca uno
-  personal. El historial ya publicado no se reescribe.
+- **Correo:** los commits usan el correo personal del usuario (`user.email`
+  global). Es público en su perfil de GitHub, así que se sube sin problemas.
 - **Migraciones del Supabase compartido** (`devappsdpm-db`, con nocendland y
   outify): se aplican aparte, con autorización expresa, en remoto **antes** de
   integrar el frontend que las necesita. El fichero de `supabase/migrations/`
@@ -368,8 +369,9 @@ repetirla. La rama principal es `master`.
   servicios singleton.
 - Los servicios de Supabase encapsulan todo acceso a la base de datos — no se
   hacen llamadas directas a Supabase desde componentes.
-- **Supabase** para auth y base de datos PostgreSQL. Las credenciales van en
-  `src/environments/environment.ts` (no se commitea).
+- **Supabase** para auth y base de datos PostgreSQL. La URL del proyecto y la
+  clave publicable van en `src/environments/environment.ts`, que sí se versiona
+  (la build de Vercel lo necesita). Nunca se pone ahí una clave secreta.
 - Accesibilidad: ver el apartado "Accesibilidad" de
   [[#Seguridad, coste y cumplimiento]].
 - **TypeScript 5.9** en modo estricto. Evitar `any`; usar `unknown` cuando el
